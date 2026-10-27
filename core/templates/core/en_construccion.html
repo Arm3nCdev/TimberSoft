@@ -1,0 +1,13 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block migas %}{{ seccion }} / <strong>{{ titulo }}</strong>{% endblock %}
+
+{% block contenido %}
+<div class="panel construccion">
+  <div class="construccion-icono">🚧</div>
+  <h1>{{ titulo }}</h1>
+  <p class="sutil">Este módulo todavía está en desarrollo.</p>
+  <a class="btn btn-primario" href="{% url 'core:dashboard' %}">Volver al inicio</a>
+</div>
+{% endblock %}

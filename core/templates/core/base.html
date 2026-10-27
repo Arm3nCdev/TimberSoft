@@ -1,0 +1,74 @@
+{% load static %}<!doctype html>
+<html lang="es-PY">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Inicio{% endblock %} · TimberSoft</title>
+  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <a class="marca" href="{% url 'core:dashboard' %}">
+      <span class="marca-logo">🪚</span>
+      <span>
+        <strong>TimberSoft</strong>
+        <small>Gestión de carpinterías</small>
+      </span>
+    </a>
+
+    <nav class="menu">
+      <a class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}activo{% endif %}" href="{% url 'core:dashboard' %}">
+        <span class="icono">🏠</span> Inicio
+      </a>
+
+      {% for seccion in menu_secciones %}
+        <div class="menu-seccion {% if seccion.abierta %}abierta{% endif %}">
+          <button type="button" class="menu-toggle" aria-expanded="{% if seccion.abierta %}true{% else %}false{% endif %}">
+            <span class="icono">{{ seccion.icono }}</span>
+            <span class="texto">{{ seccion.titulo }}</span>
+            <span class="flecha" aria-hidden="true">▸</span>
+          </button>
+          <ul class="submenu">
+            {% for item in seccion.items %}
+              <li><a href="{{ item.href }}" class="{% if item.activo %}activo{% endif %}">{{ item.titulo }}</a></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </nav>
+
+    <div class="sidebar-pie">
+      <div>{{ empresa.nombre }}</div>
+      <small>RUC {{ empresa.ruc }}</small>
+    </div>
+  </aside>
+
+  <div class="principal">
+    <header class="topbar">
+      <button type="button" class="btn-hamburguesa" id="btn-menu" aria-label="Abrir menú">☰</button>
+      <div class="migas">{% block migas %}Inicio{% endblock %}</div>
+      <div class="topbar-der">
+        <a class="btn btn-primario" href="{% url 'core:modulo' 'nuevo-presupuesto' %}">+ Nuevo presupuesto</a>
+        <div class="usuario">
+          <button type="button" class="usuario-btn" id="btn-usuario" aria-expanded="false">
+            <span class="avatar">{{ request.user.username|default:"E"|first|upper }}</span>
+            <span class="usuario-nombre">{% if request.user.is_authenticated %}{{ request.user.username }}{% else %}Encargado{% endif %}</span> ▾
+          </button>
+          <ul class="usuario-menu" id="menu-usuario">
+            <li><a href="{% url 'core:modulo' 'apertura-cierre' %}">Cerrar caja</a></li>
+            <li><a href="{% url 'core:modulo' 'usuarios' %}">Mi perfil</a></li>
+            <li><a href="{% url 'admin:index' %}">Administración</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="contenido">
+      {% block contenido %}{% endblock %}
+    </main>
+  </div>
+
+  <div class="velo" id="velo"></div>
+  <script src="{% static 'core/app.js' %}"></script>
+</body>
+</html>
