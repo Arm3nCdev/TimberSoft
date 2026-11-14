@@ -1,0 +1,91 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Presupuestos{% endblock %}
+{% block migas %}Ventas y Trabajos / <strong>Presupuestos</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Presupuestos de clientes</h1>
+    <p class="sutil">{{ presupuestos|length }} presupuesto{{ presupuestos|length|pluralize }} · Costeo con materiales requeridos, mano de obra y flete</p>
+  </div>
+  <form class="buscador" method="get">
+    {% if estado_seleccionado %}<input type="hidden" name="estado" value="{{ estado_seleccionado }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por cliente o mueble…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+  <a class="btn {% if not estado_seleccionado %}btn-primario{% endif %}" href="{% url 'core:presupuestos' %}">Todos</a>
+  {% for valor, etiqueta in estados %}
+    <a class="btn {% if estado_seleccionado == valor %}btn-primario{% endif %}" href="{% url 'core:presupuestos' %}?estado={{ valor }}">{{ etiqueta }}</a>
+  {% endfor %}
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Presupuesto</th>
+          <th>Cliente</th>
+          <th>Detalle de muebles</th>
+          <th>Modalidad de Entrega</th>
+          <th class="num">Mano de Obra</th>
+          <th class="num">Monto Total</th>
+          <th class="num">Seña (50%)</th>
+          <th class="num">Saldo Pendiente</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pres in presupuestos %}
+          <tr>
+            <td class="mono"><strong>#{{ pres.idPresupuesto|stringformat:"05d" }}</strong><div class="sutil">{{ pres.fechaEmision|date:"d/m/Y" }}</div></td>
+            <td>
+              <strong>{{ pres.cliente.obtenerNombreCompleto }}</strong>
+              <div class="sutil">RUC: {{ pres.cliente.rucCliente }}</div>
+            </td>
+            <td>
+              {% for d in pres.detalles.all %}
+                <div>• {{ d.descripcionMueble }} (Cant: {{ d.cantidad }})</div>
+                <div class="sutil">{{ d.largo }}m × {{ d.ancho }}m × {{ d.alto }}m · {{ d.colorTerminacion|default:"Estándar" }}</div>
+              {% empty %}
+                <span class="sutil">Sin muebles desglosados</span>
+              {% endfor %}
+            </td>
+            <td>
+              {% if pres.entrega %}
+                <span class="etiqueta {% if pres.entrega.modalidadEntrega == 'DOMICILIO' %}etiqueta-verde{% else %}etiqueta-ambar{% endif %}">
+                  {{ pres.entrega.get_modalidadEntrega_display }}
+                </span>
+                {% if pres.entrega.modalidadEntrega == 'DOMICILIO' and pres.entrega.costoFlete > 0 %}
+                  <div class="sutil">Flete: {{ pres.entrega.costoFlete|guaranies }}</div>
+                {% endif %}
+              {% else %}
+                <span class="sutil">No especificado</span>
+              {% endif %}
+            </td>
+            <td class="num">{{ pres.costoManoObra|guaranies }}</td>
+            <td class="num"><strong>{{ pres.montoTotal|guaranies }}</strong></td>
+            <td class="num">{{ pres.montoSena|guaranies }}</td>
+            <td class="num">{{ pres.saldoPendiente|guaranies }}</td>
+            <td>
+              <span class="etiqueta {% if pres.estadoPresupuesto == 'APROBADO' %}etiqueta-verde{% elif pres.estadoPresupuesto == 'RECHAZADO' %}etiqueta-roja{% else %}etiqueta-ambar{% endif %}">
+                {{ pres.get_estadoPresupuesto_display }}
+              </span>
+              {% if pres.pedido %}
+                <div class="sutil" style="margin-top:4px;">→ Pedido #{{ pres.pedido.idPedido|stringformat:"04d" }}</div>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="9" class="vacio">No se encontraron presupuestos.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

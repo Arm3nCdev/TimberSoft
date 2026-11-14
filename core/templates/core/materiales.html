@@ -2,17 +2,17 @@
 {% load formato_py %}
 
 {% block titulo %}Materiales{% endblock %}
-{% block migas %}Materiales / <strong>{% if solo_bajo %}Stock bajo{% else %}Todos los materiales{% endif %}</strong>{% endblock %}
+{% block migas %}Materiales / <strong>{% if solo_bajo %}Stock bajo / crítico{% else %}Todos los materiales{% endif %}</strong>{% endblock %}
 
 {% block contenido %}
 <div class="encabezado">
   <div>
-    <h1>{% if solo_bajo %}Materiales con stock bajo{% else %}Materiales{% endif %}</h1>
-    <p class="sutil">{{ materiales|length }} material{{ materiales|length|pluralize:"es" }} · maderas en pies tablares (PT), tableros por placa (PL)</p>
+    <h1>{% if solo_bajo %}Materiales con stock crítico{% else %}Materiales{% endif %}</h1>
+    <p class="sutil">{{ materiales|length }} material{{ materiales|length|pluralize:"es" }} · Control de existencias y costos unitarios</p>
   </div>
   <form class="buscador" method="get">
     {% if solo_bajo %}<input type="hidden" name="stock" value="bajo">{% endif %}
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por código o descripción…" autofocus>
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por código o nombre…" autofocus>
     <button class="btn">Buscar</button>
   </form>
 </div>
@@ -22,24 +22,25 @@
     <table class="tabla">
       <thead>
         <tr>
-          <th>Código</th><th>Descripción</th><th>Categoría</th>
-          <th class="num">Costo unitario</th><th class="num">Stock</th><th class="num">Valor en stock</th>
+          <th>Código</th><th>Material</th><th>Unidad</th>
+          <th class="num">Costo unitario</th><th class="num">Stock actual</th><th class="num">Mínimo</th><th class="num">Valor en stock</th>
         </tr>
       </thead>
       <tbody>
         {% for m in materiales %}
           <tr>
             <td class="mono">{{ m.codigo }}</td>
-            <td>{{ m.descripcion }}</td>
-            <td>{{ m.categoria }}</td>
-            <td class="num">{{ m.precio_costo|guaranies }} <span class="sutil">/ {{ m.unidad }}</span></td>
+            <td><strong>{{ m.nombreMaterial }}</strong>{% if m.categoria %}<div class="sutil">{{ m.categoria }}</div>{% endif %}</td>
+            <td>{{ m.get_unidadMedida_display }}</td>
+            <td class="num">{{ m.precioCosto|guaranies }}</td>
             <td class="num">
-              <span class="etiqueta {% if m.stock_bajo %}etiqueta-roja{% else %}etiqueta-verde{% endif %}">{{ m.stock|cantidad }} {{ m.unidad }}</span>
+              <span class="etiqueta {% if m.esStockCritico %}etiqueta-roja{% else %}etiqueta-verde{% endif %}">{{ m.stockActual|cantidad }} {{ m.unidadMedida }}</span>
             </td>
+            <td class="num">{{ m.stockMinimo|cantidad }}</td>
             <td class="num">{{ m.valor_stock|guaranies }}</td>
           </tr>
         {% empty %}
-          <tr><td colspan="6" class="vacio">No se encontraron materiales{% if q %} para «{{ q }}»{% endif %}.</td></tr>
+          <tr><td colspan="7" class="vacio">No se encontraron materiales{% if q %} para «{{ q }}»{% endif %}.</td></tr>
         {% endfor %}
       </tbody>
     </table>

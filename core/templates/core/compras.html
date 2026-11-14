@@ -1,0 +1,66 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Compras{% endblock %}
+{% block migas %}Compras / <strong>Compras realizadas</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Compras de materiales</h1>
+    <p class="sutil">{{ compras|length }} compra{{ compras|length|pluralize }} · Entradas automáticas a inventario y control de pagos a proveedores</p>
+  </div>
+  <form class="buscador" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por proveedor…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Compra</th>
+          <th>Proveedor</th>
+          <th>Fecha</th>
+          <th>Materiales Comprados</th>
+          <th class="num">Total Compra</th>
+          <th class="num">Pagado</th>
+          <th class="num">Saldo Pendiente</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in compras %}
+          <tr>
+            <td class="mono"><strong>#{{ c.idCompra }}</strong></td>
+            <td>
+              <strong>{{ c.proveedor.razonSocial }}</strong>
+              <div class="sutil">RUC: {{ c.proveedor.rucProveedor }}</div>
+            </td>
+            <td>{{ c.fechaCompra|date:"d/m/Y" }}</td>
+            <td>
+              {% for d in c.detalles.all %}
+                <div>• {{ d.material.nombreMaterial }} x {{ d.cantidad|cantidad }} {{ d.material.unidadMedida }} ({{ d.subtotal|guaranies }})</div>
+              {% endfor %}
+            </td>
+            <td class="num"><strong>{{ c.total|guaranies }}</strong></td>
+            <td class="num">
+              {% for p in c.pagos.all %}
+                <div class="sutil">{{ p.fechaPago|date:"d/m" }}: {{ p.montoPago|guaranies }}</div>
+              {% empty %}
+                <span class="sutil">₲ 0</span>
+              {% endfor %}
+            </td>
+            <td class="num">
+              <strong {% if c.saldoPendiente > 0 %}style="color:var(--rojo);"{% endif %}>{{ c.saldoPendiente|guaranies }}</strong>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="vacio">No hay compras registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

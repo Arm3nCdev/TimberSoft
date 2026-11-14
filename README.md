@@ -1,9 +1,13 @@
 # TimberSoft — Gestión para carpinterías
 
-Sistema web en Django (backend Python + plantillas Django) pensado para carpinterías de Paraguay: trabajos a pedido con seña y saldo,
-maderas en pies tablares, tableros por placa, herrajes e insumos;:
-montos en guaraníes (₲, sin decimales), IVA 10% / 5% / exenta incluido en el precio, RUC/CI de clientes
-y numeración de facturas `001-001-0000001`.
+Sistema web en Django para la **Carpintería Fabmag** basado en el **Análisis Orientado a Objetos** y las **11 Reglas de Negocio** de `AGENTS.MD`.
+
+- **Monto y moneda**: Importes decimales en guaraníes (₲).
+- **Herencia Persona**: `Cliente` y `Usuario` heredan de `Persona` compartiendo su `idPersona`.
+- **Presupuestos y Pedidos**: Flujo completo de costeo de materiales requeridos, mano de obra, flete según entrega (retiro en taller vs. domicilio), aprobación y seña (50%).
+- **Inventario y Compras**: Movimientos de stock con entradas automáticas por compras y control de no negatividad.
+- **Caja y Tesorería**: Registro de pagos, pagos a proveedores, gastos operativos y cierre de caja diario sin doble conteo.
+- **Auditoría**: Trazabilidad automática de cambios (`RegistroCambio`) ante operaciones críticas.
 
 ## Cómo correrlo
 
@@ -11,17 +15,20 @@ y numeración de facturas `001-001-0000001`.
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\python manage.py migrate
-.venv\Scripts\python manage.py cargar_demo        # datos de ejemplo
-.venv\Scripts\python manage.py createsuperuser    # opcional, para /admin
+.venv\Scripts\python manage.py cargar_demo        # carga datos y usuarios de prueba
+.venv\Scripts\python manage.py test               # ejecuta las 11 pruebas de reglas de negocio
 .venv\Scripts\python manage.py runserver
 ```
 
 Abrir http://127.0.0.1:8000
 
-## Estructura
+### Usuarios demo creados por `cargar_demo`:
+- **Administrador**: `admin` / `admin123` (Rol `ADMIN`)
+- **Empleado**: `juan_taller` / `empleado123` (Rol `EMPLEADO`)
 
-- `core/models.py` — Categoría, Material, Cliente, OrdenTrabajo
-- `core/menu.py` — opciones del menú lateral y sus submenús
-- `core/views.py` — Inicio (resumen del taller), Materiales, pantalla "en construcción"
-- `core/templatetags/formato_py.py` — filtros `guaranies` y `cantidad` (formato 1.234.567)
-- `core/templates/core/` — plantillas; `core/static/core/` — CSS y JS
+## Estructura del Modelo
+
+- `core/models.py` — 21 clases (Persona, Cliente, Usuario, Proveedor, Material, Presupuesto, DetallePresupuesto, MaterialRequerido, Entrega, Adjunto, Pedido, Pago, GastoOperativo, Compra, DetalleCompra, PagoProveedor, MovimientoInventario, CierreCaja, PrecioProveedorMaterial, RegistroCambio, Respaldo) y 9 enumeraciones.
+- `core/tests.py` — 11 pruebas unitarias automatizadas que garantizan el cumplimiento de las 11 reglas de negocio de `AGENTS.MD`.
+- `core/views.py` — Dashboard filtrado por permisos según rol (Regla 11), catálogo de materiales y estado de stock.
+- `core/admin.py` — Panel administrativo con inlines y auditoría en solo lectura.

@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}Auditoría{% endblock %}
+{% block migas %}Auditoría / <strong>Registro de cambios</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Auditoría y registro de cambios</h1>
+    <p class="sutil">Regla 9: Las acciones críticas (pedidos, pagos, movimientos de materiales) generan un RegistroCambio automático</p>
+  </div>
+  <form class="buscador" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por entidad o detalle…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha y Hora</th>
+          <th>Entidad Afectada</th>
+          <th>ID Entidad</th>
+          <th>Acción</th>
+          <th>Usuario</th>
+          <th>Valores y Detalles Registrados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in registros %}
+          <tr>
+            <td class="mono">#{{ reg.idRegistro }}</td>
+            <td>{{ reg.fechaHora|date:"d/m/Y H:i:s" }}</td>
+            <td><strong>{{ reg.entidad }}</strong></td>
+            <td class="mono">#{{ reg.idEntidad }}</td>
+            <td>
+              <span class="etiqueta {% if reg.accion == 'CREAR' %}etiqueta-verde{% elif reg.accion == 'MODIFICAR' %}etiqueta-ambar{% else %}etiqueta-roja{% endif %}">
+                {{ reg.get_accion_display }}
+              </span>
+            </td>
+            <td>{{ reg.usuario.username|default:"Sistema" }}</td>
+            <td>
+              <div>{{ reg.valorNuevo }}</div>
+              {% if reg.valorAnterior %}
+                <div class="sutil">Previo: {{ reg.valorAnterior }}</div>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="vacio">No hay registros de auditoría almacenados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

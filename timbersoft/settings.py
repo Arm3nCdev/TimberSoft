@@ -25,10 +25,12 @@ SECRET_KEY = 'django-insecure-%kk1gnl$jnw-^aty+vgo5xv6$8ink7(1q%bi8ue2&21gd#iy!^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
+
+AUTH_USER_MODEL = 'core.Usuario'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -120,10 +122,10 @@ STATIC_URL = 'static/'
 
 # Datos de la empresa (se mostrarán en presupuestos, facturas y encabezados)
 EMPRESA = {
-    'nombre': 'Carpintería San José',
-    'ruc': '80012345-6',
-    'direccion': 'Ruta PY02 km 18, Capiatá',
-    'telefono': '(021) 600 123',
+    'nombre': 'Carpintería FabMag',
+    'ruc': '6812323',
+    'direccion': 'Ruta PY-01 Carapeguá',
+    'telefono': '+595 0972845987',
 }
 
 # Default primary key field type

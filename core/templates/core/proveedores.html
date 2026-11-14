@@ -1,0 +1,62 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Proveedores{% endblock %}
+{% block migas %}Compras / <strong>Proveedores</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Proveedores y aserraderos</h1>
+    <p class="sutil">{{ proveedores|length }} proveedor{{ proveedores|length|pluralize:"es" }} · Catálogos de precios y control de deudas pendientes</p>
+  </div>
+  <form class="buscador" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por razón social, rubro o RUC…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Proveedor / Aserradero</th>
+          <th>Rubro</th>
+          <th>Contacto</th>
+          <th>Dirección</th>
+          <th>Catálogo de Materiales</th>
+          <th class="num">Deuda Pendiente</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for prov in proveedores %}
+          <tr>
+            <td>
+              <strong>{{ prov.razonSocial }}</strong>
+              <div class="sutil">RUC: {{ prov.rucProveedor }}</div>
+            </td>
+            <td>{{ prov.rubroMaterial|default:"General" }}</td>
+            <td>{{ prov.telefono|default:"-" }}</td>
+            <td>{{ prov.direccion|default:"-" }}</td>
+            <td>
+              {% for p in prov.precios_materiales.all %}
+                {% if p.vigente %}
+                  <div>• {{ p.material.nombreMaterial }}: <strong>{{ p.precioUnitario|guaranies }}</strong></div>
+                {% endif %}
+              {% empty %}
+                <span class="sutil">Sin catálogo registrado</span>
+              {% endfor %}
+            </td>
+            <td class="num">
+              <strong>{{ prov.obtenerDeudaPendiente|guaranies }}</strong>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="vacio">No se encontraron proveedores.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

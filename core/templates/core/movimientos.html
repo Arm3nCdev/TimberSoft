@@ -1,0 +1,70 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Movimientos de Inventario{% endblock %}
+{% block migas %}Materiales / <strong>Movimientos de inventario</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Movimientos de inventario</h1>
+    <p class="sutil">{{ movimientos|length }} registro{{ movimientos|length|pluralize }} · Trazabilidad de entradas por compra, consumos de taller y desperdicios</p>
+  </div>
+  <form class="buscador" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por material u observación…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Material</th>
+          <th>Tipo de Movimiento</th>
+          <th class="num">Cantidad</th>
+          <th>Origen / Pedido / Compra</th>
+          <th>Motivo u Observación</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mov in movimientos %}
+          <tr>
+            <td class="mono">#{{ mov.idMovimiento }}</td>
+            <td>{{ mov.fechaMovimiento|date:"d/m/Y" }}</td>
+            <td>
+              <strong>{{ mov.material.nombreMaterial }}</strong>
+              <div class="sutil">{{ mov.material.codigo }}</div>
+            </td>
+            <td>
+              <span class="etiqueta {% if mov.tipoMovimiento == 'ENTRADA' %}etiqueta-verde{% elif mov.tipoMovimiento == 'SALIDA_CONSUMO' %}etiqueta-ambar{% else %}etiqueta-roja{% endif %}">
+                {{ mov.get_tipoMovimiento_display }}
+              </span>
+            </td>
+            <td class="num">
+              <strong>
+                {% if mov.tipoMovimiento == 'ENTRADA' %}+{% else %}-{% endif %}{{ mov.cantidadMovimiento|cantidad }} {{ mov.material.unidadMedida }}
+              </strong>
+            </td>
+            <td>
+              {% if mov.compra %}
+                Compra #{{ mov.compra.idCompra }} ({{ mov.compra.proveedor.razonSocial }})
+              {% elif mov.pedido %}
+                Pedido #{{ mov.pedido.idPedido|stringformat:"04d" }}
+              {% else %}
+                <span class="sutil">Ajuste directo</span>
+              {% endif %}
+            </td>
+            <td>{{ mov.motivoObservacion|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="vacio">No hay movimientos de inventario registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

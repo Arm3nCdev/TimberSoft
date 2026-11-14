@@ -1,0 +1,139 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Caja y Finanzas{% endblock %}
+{% block migas %}Caja y Finanzas / <strong>Cierre y movimientos de caja</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Caja y control financiero</h1>
+    <p class="sutil">{{ hoy|date:"l j \d\e F \d\e Y" }} · Regla 10: Las compras se registran con Compra y PagoProveedor, no como GastoOperativo</p>
+  </div>
+</div>
+
+<section class="kpis">
+  <article class="kpi">
+    <span class="kpi-etiqueta">Ingresos del día (Pagos de clientes)</span>
+    <strong class="kpi-valor" style="color:var(--verde);">{{ total_ingresos|guaranies }}</strong>
+    <span class="kpi-nota">{{ pagos_hoy|length }} cobro{{ pagos_hoy|length|pluralize }} hoy</span>
+  </article>
+  <article class="kpi">
+    <span class="kpi-etiqueta">Egresos del día (Gastos + Proveedores)</span>
+    <strong class="kpi-valor" style="color:var(--rojo);">{{ total_egresos|guaranies }}</strong>
+    <span class="kpi-nota">Gastos operativos y pagos de compras</span>
+  </article>
+  <article class="kpi">
+    <span class="kpi-etiqueta">Balance neto del día</span>
+    <strong class="kpi-valor" {% if balance_neto < 0 %}style="color:var(--rojo);"{% endif %}>{{ balance_neto|guaranies }}</strong>
+    <span class="kpi-nota">Ingresos menos egresos</span>
+  </article>
+</section>
+
+<section class="grilla-2">
+  <article class="panel">
+    <header class="panel-cab">
+      <h2>Ingresos de hoy (Pagos de clientes)</h2>
+    </header>
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Comprobante</th>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Medio</th>
+            <th class="num">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in pagos_hoy %}
+            <tr>
+              <td class="mono">{{ p.nroComprobante|default:p.idPago }}</td>
+              <td>{{ p.presupuesto.cliente.obtenerNombreCompleto }}</td>
+              <td><span class="etiqueta etiqueta-verde">{{ p.get_tipoPago_display }}</span></td>
+              <td>{{ p.get_medioPago_display }}</td>
+              <td class="num"><strong>{{ p.montoPago|guaranies }}</strong></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="vacio">No hay pagos recibidos hoy.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <header class="panel-cab">
+      <h2>Egresos de hoy (Gastos y Proveedores)</h2>
+    </header>
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Concepto / Proveedor</th>
+            <th>Clasificación</th>
+            <th>Ref.</th>
+            <th class="num">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in gastos_hoy %}
+            <tr>
+              <td>{{ g.conceptoGasto }}</td>
+              <td><span class="etiqueta etiqueta-ambar">Gasto Operativo</span></td>
+              <td class="mono">{{ g.comprobanteRef|default:"-" }}</td>
+              <td class="num"><strong>{{ g.montoGasto|guaranies }}</strong></td>
+            </tr>
+          {% endfor %}
+          {% for pp in pagos_prov_hoy %}
+            <tr>
+              <td>{{ pp.compra.proveedor.razonSocial }} (Compra #{{ pp.compra.idCompra }})</td>
+              <td><span class="etiqueta etiqueta-azul">Pago a Proveedor</span></td>
+              <td class="mono">{{ pp.get_medioPago_display }}</td>
+              <td class="num"><strong>{{ pp.montoPago|guaranies }}</strong></td>
+            </tr>
+          {% endfor %}
+          {% if not gastos_hoy and not pagos_prov_hoy %}
+            <tr><td colspan="4" class="vacio">No hay egresos registrados hoy.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<div style="margin-top:24px;">
+  <article class="panel">
+    <header class="panel-cab">
+      <h2>Histórico de cierres de caja</h2>
+    </header>
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Fecha Cierre</th>
+            <th>Responsable</th>
+            <th class="num">Total Ingresos</th>
+            <th class="num">Total Egresos</th>
+            <th class="num">Balance Neto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cierres %}
+            <tr>
+              <td><strong>{{ c.fechaCierre|date:"d/m/Y" }}</strong></td>
+              <td>{{ c.usuario.username }}</td>
+              <td class="num" style="color:var(--verde);">{{ c.totalIngresos|guaranies }}</td>
+              <td class="num" style="color:var(--rojo);">{{ c.totalEgresos|guaranies }}</td>
+              <td class="num"><strong>{{ c.balanceNeto|guaranies }}</strong></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="vacio">No hay cierres de caja registrados todavía.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</div>
+{% endblock %}

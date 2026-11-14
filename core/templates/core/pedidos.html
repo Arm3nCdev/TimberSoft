@@ -1,0 +1,83 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Pedidos{% endblock %}
+{% block migas %}Ventas y Trabajos / <strong>Pedidos</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Pedidos de producción</h1>
+    <p class="sutil">
+      {{ pedidos|length }} pedido{{ pedidos|length|pluralize }} en lista
+      {% if filtro_usuario %} · Mostrando únicamente pedidos asignados a: <strong>{{ filtro_usuario }}</strong> (Regla 11){% endif %}
+    </p>
+  </div>
+  <form class="buscador" method="get">
+    {% if estado_seleccionado %}<input type="hidden" name="estado" value="{{ estado_seleccionado }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por cliente, mueble o RUC…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+  <a class="btn {% if not estado_seleccionado %}btn-primario{% endif %}" href="{% url 'core:pedidos' %}">Todos</a>
+  {% for valor, etiqueta in estados %}
+    <a class="btn {% if estado_seleccionado == valor %}btn-primario{% endif %}" href="{% url 'core:pedidos' %}?estado={{ valor }}">{{ etiqueta }}</a>
+  {% endfor %}
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Pedido</th>
+          <th>Cliente</th>
+          <th>Trabajo / Muebles</th>
+          <th>Responsable</th>
+          <th>Recepción</th>
+          <th>Entrega Estimada</th>
+          <th>Estado</th>
+          <th class="num">Total</th>
+          <th class="num">Saldo Pendiente</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pedidos %}
+          <tr>
+            <td class="mono"><strong>PED #{{ p.idPedido|stringformat:"04d" }}</strong></td>
+            <td>
+              <strong>{{ p.presupuesto.cliente.obtenerNombreCompleto }}</strong>
+              <div class="sutil">RUC: {{ p.presupuesto.cliente.rucCliente }}</div>
+            </td>
+            <td>
+              {{ p.descripcion }}
+              <div class="sutil">{{ p.presupuesto.detalles.first.colorTerminacion|default:"Acabado estándar" }}</div>
+            </td>
+            <td>{{ p.responsable.username }}</td>
+            <td>{{ p.fechaRecepcion|date:"d/m/Y" }}</td>
+            <td>
+              {{ p.fechaEntregaEstimada|date:"d/m/Y" }}
+              {% if p.fechaEntregaEstimada < hoy and p.estadoPedido != 'ENTREGADO' %}
+                <div><span class="etiqueta etiqueta-roja">Atrasado</span></div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="etiqueta {% if p.estadoPedido == 'ENTREGADO' %}etiqueta-verde{% elif p.estadoPedido == 'TERMINADO' %}etiqueta-verde{% elif p.estadoPedido == 'EN_PROCESO' %}etiqueta-ambar{% else %}etiqueta-roja{% endif %}">
+                {{ p.get_estadoPedido_display }}
+              </span>
+            </td>
+            <td class="num">{{ p.total|guaranies }}</td>
+            <td class="num">
+              <strong {% if p.saldo > 0 %}style="color:var(--rojo);"{% endif %}>{{ p.saldo|guaranies }}</strong>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="9" class="vacio">No se encontraron pedidos con los filtros aplicados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

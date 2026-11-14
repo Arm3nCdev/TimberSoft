@@ -18,7 +18,7 @@
 
     <nav class="menu">
       <a class="menu-link {% if request.resolver_match.url_name == 'dashboard' %}activo{% endif %}" href="{% url 'core:dashboard' %}">
-        <span class="icono">🏠</span> Inicio
+        <span class="icono">🏠</span> Inicio / Dashboard
       </a>
 
       {% for seccion in menu_secciones %}
@@ -39,7 +39,7 @@
 
     <div class="sidebar-pie">
       <div>{{ empresa.nombre }}</div>
-      <small>RUC {{ empresa.ruc }}</small>
+      <small>RUC {{ empresa.ruc }} · {{ empresa.direccion }}</small>
     </div>
   </aside>
 
@@ -48,16 +48,23 @@
       <button type="button" class="btn-hamburguesa" id="btn-menu" aria-label="Abrir menú">☰</button>
       <div class="migas">{% block migas %}Inicio{% endblock %}</div>
       <div class="topbar-der">
-        <a class="btn btn-primario" href="{% url 'core:modulo' 'nuevo-presupuesto' %}">+ Nuevo presupuesto</a>
+        <a class="btn btn-primario" href="{% url 'core:presupuestos' %}">Presupuestos</a>
+        <a class="btn" href="{% url 'core:pedidos' %}">Pedidos</a>
         <div class="usuario">
           <button type="button" class="usuario-btn" id="btn-usuario" aria-expanded="false">
-            <span class="avatar">{{ request.user.username|default:"E"|first|upper }}</span>
-            <span class="usuario-nombre">{% if request.user.is_authenticated %}{{ request.user.username }}{% else %}Encargado{% endif %}</span> ▾
+            <span class="avatar">{{ request.user.username|default:"A"|first|upper }}</span>
+            <span class="usuario-nombre">
+              {% if request.user.is_authenticated %}
+                {{ request.user.username }} ({{ request.user.get_rol_display|default:"Usuario" }})
+              {% else %}
+                Invitado / Admin
+              {% endif %}
+            </span> ▾
           </button>
           <ul class="usuario-menu" id="menu-usuario">
-            <li><a href="{% url 'core:modulo' 'apertura-cierre' %}">Cerrar caja</a></li>
-            <li><a href="{% url 'core:modulo' 'usuarios' %}">Mi perfil</a></li>
-            <li><a href="{% url 'admin:index' %}">Administración</a></li>
+            <li><a href="{% url 'core:caja' %}">Caja diaria</a></li>
+            <li><a href="{% url 'core:auditoria' %}">Registro de cambios</a></li>
+            <li><a href="{% url 'admin:index' %}">Panel de Django Admin</a></li>
           </ul>
         </div>
       </div>

@@ -1,0 +1,55 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Clientes{% endblock %}
+{% block migas %}Clientes / <strong>Listado de clientes</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Clientes</h1>
+    <p class="sutil">{{ clientes|length }} cliente{{ clientes|length|pluralize }} · Herencia de datos de Persona y registro de presupuestos / pedidos</p>
+  </div>
+  <form class="buscador" method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, RUC o CI…" autofocus>
+    <button class="btn">Buscar</button>
+  </form>
+</div>
+
+<article class="panel">
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>RUC</th>
+          <th>C.I.</th>
+          <th>Teléfono</th>
+          <th>Dirección</th>
+          <th>Fecha Registro</th>
+          <th class="num">Presupuestos</th>
+          <th class="num">Pedidos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cli in clientes %}
+          <tr>
+            <td>
+              <strong>{{ cli.obtenerNombreCompleto }}</strong>
+            </td>
+            <td class="mono">{{ cli.rucCliente }}</td>
+            <td class="mono">{{ cli.ci }}</td>
+            <td>{{ cli.telefono|default:"-" }}</td>
+            <td>{{ cli.direccion|default:"-" }}</td>
+            <td>{{ cli.fechaRegistro|date:"d/m/Y" }}</td>
+            <td class="num">{{ cli.consultarPresupuestos|length }}</td>
+            <td class="num"><strong>{{ cli.consultarHistorialPedidos|length }}</strong></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="vacio">No se encontraron clientes.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</article>
+{% endblock %}

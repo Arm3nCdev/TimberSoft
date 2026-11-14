@@ -13,7 +13,7 @@
 
 <section class="kpis">
   <article class="kpi">
-    <span class="kpi-etiqueta">Trabajos en producción</span>
+    <span class="kpi-etiqueta">Trabajos en proceso</span>
     <strong class="kpi-valor">{{ en_produccion }}</strong>
     <span class="kpi-nota">{{ presupuestos }} presupuesto{{ presupuestos|pluralize }} pendiente{{ presupuestos|pluralize }}</span>
   </article>
@@ -25,7 +25,7 @@
   <article class="kpi">
     <span class="kpi-etiqueta">Saldo por cobrar</span>
     <strong class="kpi-valor">{{ saldo_cobrar|guaranies }}</strong>
-    <span class="kpi-nota">Total menos señas recibidas</span>
+    <span class="kpi-nota">Total pedidos menos pagos recibidos</span>
   </article>
   <article class="kpi {% if cantidad_stock_bajo %}kpi-alerta{% endif %}">
     <span class="kpi-etiqueta">Materiales a reponer</span>
@@ -38,24 +38,31 @@
   <article class="panel">
     <header class="panel-cab">
       <h2>Próximas entregas</h2>
-      <a href="{% url 'core:modulo' 'entregas' %}">Agenda</a>
+      <a href="{% url 'core:pedidos' %}">Ver todos los pedidos →</a>
     </header>
     <div class="tabla-scroll">
       <table class="tabla">
-        <thead><tr><th>OT</th><th>Trabajo</th><th>Entrega</th><th class="num">Saldo</th></tr></thead>
+        <thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th class="num">Saldo</th></tr></thead>
         <tbody>
           {% for t in proximas_entregas %}
             <tr>
-              <td class="mono">{{ t.numero|stringformat:"05d" }}</td>
-              <td>{{ t.descripcion }}<div class="sutil">{{ t.cliente.razon_social }} · {{ t.madera }}</div></td>
+              <td class="mono">PED #{{ t.idPedido|stringformat:"04d" }}</td>
               <td>
-                {{ t.fecha_entrega|date:"d/m" }}
-                <div><span class="etiqueta {% if t.fecha_entrega < hoy %}etiqueta-roja{% elif t.estado == 'TERMINADO' %}etiqueta-verde{% else %}etiqueta-ambar{% endif %}">{% if t.fecha_entrega < hoy %}Atrasado{% else %}{{ t.get_estado_display }}{% endif %}</span></div>
+                {{ t.descripcion }}
+                <div class="sutil">{{ t.cliente.obtenerNombreCompleto }} · Resp: {{ t.responsable.username }}</div>
+              </td>
+              <td>
+                {{ t.fechaEntregaEstimada|date:"d/m" }}
+                <div>
+                  <span class="etiqueta {% if t.fechaEntregaEstimada < hoy %}etiqueta-roja{% elif t.estadoPedido == 'TERMINADO' %}etiqueta-verde{% elif t.estadoPedido == 'ENTREGADO' %}etiqueta-azul{% else %}etiqueta-ambar{% endif %}">
+                    {% if t.fechaEntregaEstimada < hoy and t.estadoPedido != 'ENTREGADO' %}Atrasado{% else %}{{ t.get_estadoPedido_display }}{% endif %}
+                  </span>
+                </div>
               </td>
               <td class="num">{{ t.saldo|guaranies }}</td>
             </tr>
           {% empty %}
-            <tr><td colspan="4" class="vacio">No hay trabajos pendientes de entrega.</td></tr>
+            <tr><td colspan="4" class="vacio">No hay pedidos pendientes de entrega.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -64,18 +71,18 @@
 
   <article class="panel">
     <header class="panel-cab">
-      <h2>Reponer pronto</h2>
+      <h2>Stock crítico (reponer pronto)</h2>
       <a href="{% url 'core:materiales' %}?stock=bajo">Ver todo</a>
     </header>
     <div class="tabla-scroll">
       <table class="tabla">
-        <thead><tr><th>Material</th><th class="num">Stock</th><th class="num">Mínimo</th></tr></thead>
+        <thead><tr><th>Material</th><th class="num">Stock actual</th><th class="num">Mínimo</th></tr></thead>
         <tbody>
           {% for m in stock_bajo %}
             <tr>
-              <td>{{ m.descripcion }}<div class="sutil">{{ m.categoria }}</div></td>
-              <td class="num"><span class="etiqueta etiqueta-roja">{{ m.stock|cantidad }} {{ m.unidad }}</span></td>
-              <td class="num">{{ m.stock_minimo|cantidad }}</td>
+              <td>{{ m.nombreMaterial }}<div class="sutil">{{ m.codigo }}</div></td>
+              <td class="num"><span class="etiqueta etiqueta-roja">{{ m.stockActual|cantidad }} {{ m.unidadMedida }}</span></td>
+              <td class="num">{{ m.stockMinimo|cantidad }}</td>
             </tr>
           {% empty %}
             <tr><td colspan="3" class="vacio">Todo el stock está por encima del mínimo.</td></tr>
