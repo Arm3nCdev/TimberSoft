@@ -64,7 +64,99 @@ class AccionAuditoria(models.TextChoices):
     MODIFICAR = 'MODIFICAR', 'Modificar'
     ELIMINAR = 'ELIMINAR', 'Eliminar'
 
+class estadoFactura(models.TextChoises):
+    EMITIDA='Emitida','Emitida'
+    ANULADA='Anulada','Anulada
 
+class Tibrado(models.Model):
+    idTmbrado=models.AutoField(primary_key=True)
+    numeroTimbrado = models.CharField('Número de timbrado', max_length=20, unique=True)
+    establecimiento = models.CharField('Establecimiento', max_length=3, default='001')
+    puntoExpedicion = models.CharField('Punto de expedición', max_length=3, default='001')
+    numeroDesde = models.PositiveIntegerField('Numeración desde')
+    numeroHasta = models.PositiveIntegerField('Numeración hasta')
+    ultimoNumeroEmitido = models.PositiveIntegerField('Último número emitido', default=0)
+    fechaInicioVigencia = models.DateField('Inicio de vigencia')
+    fechaFinVigencia = models.DateField('Fin de vigencia')
+    activo = models.BooleanField('Activo', default=True)
+
+class Meta:
+    verbose_name='Timbrado'
+    verbose_name_plural='Timbrados'
+
+def __str__(self):
+    return f"Timbrado {self.numeroTimbrado} ({self.establecimiento}-{self.puntoExpedicion})"
+
+def estadoVigente(self, fecha=None):
+    fecha=fecha or timezone.localdate()
+    return (
+        self.activo
+        and self.fechaInicioVigencia <= fecha <= self.fechaFinVigencia
+        and self.ultimoNumeroEmitido < self.numeroHasta
+    )
+    def obtenerSiguienteNumero(self):
+        if not self.estaVigente():
+            raise ValidationError("El timbrado no está vigente o agotó su rango autorizado.")
+        siguiente = max(self.ultimoNumeroEmitido + 1, self.numeroDesde)
+        if siguiente > self.numeroHasta:
+            raise ValidationError("Se alcanzó el límite máximo de numeración del timbrado.")
+        return f"{self.establecimiento}-{self.puntoExpedicion}-{siguiente:07d}", siguiente
+
+
+class Factura(models.Model):
+    idFactura = models.AutoField(primary_key=True)
+    pedido = models.OneToOneField(Pedido, on_delete=models.PROTECT, related_name='factura')
+    timbrado = models.ForeignKey(Timbrado, on_delete=models.PROTECT, related_name='facturas')
+    numeroFactura = models.CharField('Número de factura', max_length=20, unique=True)
+    fechaEmision = models.DateField('Fecha de emisión', default=timezone.localdate)
+    porcentajeIva = models.DecimalField('Tasa IVA (%)', max_digits=5, decimal_places=2, default=Decimal('10.00'))
+    montoGravado = models.DecimalField('Gravada', max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    montoIva = models.DecimalField('Liquidación IVA', max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    montoTotal = models.DecimalField('Total factura', max_digits=14, decimal_places=2, default=Decimal('0.00'))
+    estado = models.CharField('Estado', max_length=15, choices=EstadoFactura.choices, default=EstadoFactura.EMITIDA)
+
+    class Meta:
+        verbose_name = 'factura'
+        verbose_name_plural = 'facturas'
+        ordering = ['-idFactura']
+
+    def __str__(self):
+        return f"Factura {self.numeroFactura} (Timbrado {self.timbrado.numeroTimbrado})"
+
+    @classmethod
+    def emitirDesdePedido(cls, pedido, timbrado, porcentaje_iva=Decimal('10.00'), iva_incluido=True):
+        if hasattr(pedido, 'factura'):
+            raise ValidationError("Este pedido ya tiene una factura emitida.")
+        if not timbrado.estaVigente():
+            raise ValidationError("El timbrado seleccionado no está vigente o no tiene numeración disponible.")
+
+        total = pedido.total
+        tasa = Decimal(str(porcentaje_iva))
+
+        # Si el precio ya incluye IVA (ej. 10% -> divisor 1.10)
+        if iva_incluido:
+            divisor = Decimal('1.00') + (tasa / Decimal('100.00'))
+            gravada = (total / divisor).quantize(Decimal('0.01'))
+            iva = (total - gravada).quantize(Decimal('0.01'))
+            total_final = total
+        else:
+            gravada = total.quantize(Decimal('0.01'))
+            iva = (gravada * (tasa / Decimal('100.00'))).quantize(Decimal('0.01'))
+            total_final = gravada + iva
+
+        numero_formateado, correlativo = timbrado.obtenerSiguienteNumero()
+        timbrado.ultimoNumeroEmitido = correlativo
+        timbrado.save(update_fields=['ultimoNumeroEmitido'])
+
+        return cls.objects.create(
+            pedido=pedido,
+            timbrado=timbrado,
+            numeroFactura=numero_formateado,
+            porcentajeIva=tasa,
+            montoGravado=gravada,
+            montoIva=iva,
+            montoTotal=total_final,
+        )
 # Matriz de permisos según sección 6 del documento
 PERMISOS_POR_ROL = {
     RolEnum.ADMIN: [
