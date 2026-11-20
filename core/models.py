@@ -64,11 +64,11 @@ class AccionAuditoria(models.TextChoices):
     MODIFICAR = 'MODIFICAR', 'Modificar'
     ELIMINAR = 'ELIMINAR', 'Eliminar'
 
-class estadoFactura(models.TextChoises):
+class estadoFactura(models.TextChoices):
     EMITIDA='Emitida','Emitida'
-    ANULADA='Anulada','Anulada
+    ANULADA='Anulada','Anulada'
 
-class Tibrado(models.Model):
+class Timbrado(models.Model):
     idTmbrado=models.AutoField(primary_key=True)
     numeroTimbrado = models.CharField('Número de timbrado', max_length=20, unique=True)
     establecimiento = models.CharField('Establecimiento', max_length=3, default='001')
@@ -105,7 +105,7 @@ def estadoVigente(self, fecha=None):
 
 class Factura(models.Model):
     idFactura = models.AutoField(primary_key=True)
-    pedido = models.OneToOneField(Pedido, on_delete=models.PROTECT, related_name='factura')
+    pedido = models.OneToOneField('Pedido', on_delete=models.PROTECT, related_name='factura')
     timbrado = models.ForeignKey(Timbrado, on_delete=models.PROTECT, related_name='facturas')
     numeroFactura = models.CharField('Número de factura', max_length=20, unique=True)
     fechaEmision = models.DateField('Fecha de emisión', default=timezone.localdate)
@@ -113,7 +113,7 @@ class Factura(models.Model):
     montoGravado = models.DecimalField('Gravada', max_digits=14, decimal_places=2, default=Decimal('0.00'))
     montoIva = models.DecimalField('Liquidación IVA', max_digits=14, decimal_places=2, default=Decimal('0.00'))
     montoTotal = models.DecimalField('Total factura', max_digits=14, decimal_places=2, default=Decimal('0.00'))
-    estado = models.CharField('Estado', max_length=15, choices=EstadoFactura.choices, default=EstadoFactura.EMITIDA)
+    estado = models.CharField('Estado', max_length=15, choices=estadoFactura.choices, default=estadoFactura.EMITIDA)
 
     class Meta:
         verbose_name = 'factura'
@@ -501,6 +501,10 @@ class DetallePresupuesto(models.Model):
     largo = models.DecimalField('Largo (m)', max_digits=8, decimal_places=2, default=Decimal('0.00'))
     ancho = models.DecimalField('Ancho (m)', max_digits=8, decimal_places=2, default=Decimal('0.00'))
     alto = models.DecimalField('Alto (m)', max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    detalleMedidas = models.TextField(
+        'Detalle de medidas y características',
+        blank=True
+    )
     colorTerminacion = models.CharField('Color / Terminación', max_length=100, blank=True)
     cantidad = models.PositiveIntegerField('Cantidad', default=1)
     margen = models.DecimalField('Margen de ganancia', max_digits=14, decimal_places=2, default=Decimal('0.00'))

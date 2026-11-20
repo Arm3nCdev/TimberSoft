@@ -1,11 +1,14 @@
 from datetime import timedelta
-from decimal import Decimal
 
 from django.db.models import F, Q
 from django.http import Http404
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
+import re
+from decimal import Decimal, InvalidOperation
+
+from django.db import transaction
 from .menu import titulo_por_slug
 from .forms import ClienteForm
 from .models import (
@@ -24,6 +27,11 @@ from .models import (
     EstadoPedido,
     EstadoPresupuesto,
     RolEnum,
+    DetallePresupuesto,
+    MaterialRequerido,
+    Entrega,
+    ModalidadEntrega,
+    AccionAuditoria,
 )
 
 
@@ -93,6 +101,184 @@ def pedidos(request):
         'filtro_usuario': filtro_usuario,
         'hoy': hoy,
     })
+
+
+def nuevo_presupuesto(request):
+    clientes = Cliente.objects.all().order_by('apellido', 'nombre')
+    materiales = Material.objects.filter(activo=True).order_by('nombreMaterial')
+
+    contexto = {
+        'clientes': clientes,
+        'materiales': materiales,
+        'modalidades': ModalidadEntrega.choices,
+    }
+
+    if request.method == 'POST':
+        try:
+            cliente = Cliente.objects.get(pk=request.POST.get('cliente'))
+
+            modalidad = request.POST.get('modalidadEntrega')
+            modalidades_validas = [opcion[0] for opcion in ModalidadEntrega.choices]
+
+            if modalidad not in modalidades_validas:
+                raise ValueError('Seleccioná una modalidad de entrega válida.')
+
+            def obtener_decimal(nombre, predeterminado='0'):
+                valor = request.POST.get(nombre, predeterminado)
+                numero = Decimal(valor or predeterminado)
+
+                if numero < 0:
+                    raise ValueError('Los importes y cantidades no pueden ser negativos.')
+
+                return numero
+
+            costo_mano_obra = obtener_decimal('costoManoObra')
+            costo_flete = obtener_decimal('costoFlete')
+
+            direccion = request.POST.get('direccionEntrega', '').strip()
+
+            if modalidad == ModalidadEntrega.DOMICILIO and not direccion:
+                raise ValueError('Ingresá la dirección de entrega.')
+
+            if modalidad != ModalidadEntrega.DOMICILIO:
+                costo_flete = Decimal('0')
+                direccion = ''
+
+            indices_muebles = sorted({
+                int(coincidencia.group(1))
+                for clave in request.POST.keys()
+                if (coincidencia := re.match(
+                    r'^muebles\[(\d+)\]\[descripcion\]$', clave
+                ))
+            })
+
+            if not indices_muebles:
+                raise ValueError('Agregá al menos un mueble al presupuesto.')
+
+            with transaction.atomic():
+
+                presupuesto = Presupuesto.objects.create(
+                    cliente=cliente,
+                    costoManoObra=costo_mano_obra,
+                    estadoPresupuesto=EstadoPresupuesto.PENDIENTE,
+                )
+
+                for indice in indices_muebles:
+                    descripcion = request.POST.get(
+                        f'muebles[{indice}][descripcion]', ''
+                    ).strip()
+
+                    if not descripcion:
+                        raise ValueError('Todos los muebles deben tener una descripción.')
+
+                    cantidad = int(
+                        request.POST.get(f'muebles[{indice}][cantidad]', '1')
+                    )
+
+                    if cantidad < 1:
+                        raise ValueError('La cantidad de muebles debe ser al menos 1.')
+
+                    detalle = DetallePresupuesto.objects.create(
+                        presupuesto=presupuesto,
+                        descripcionMueble=descripcion,
+                        largo=obtener_decimal(f'muebles[{indice}][largo]'),
+                        ancho=obtener_decimal(f'muebles[{indice}][ancho]'),
+                        alto=obtener_decimal(f'muebles[{indice}][alto]'),
+                        detalleMedidas=request.POST.get(
+                            f'muebles[{indice}][detalleMedidas]', ''
+                        ).strip(),
+                        colorTerminacion=request.POST.get(
+                            f'muebles[{indice}][color]', ''
+                        ).strip(),
+                        cantidad=cantidad,
+                        margen=obtener_decimal(
+                            f'muebles[{indice}][margen]'
+                        ),
+                    )
+
+                    patron_material = re.compile(
+                        rf'^muebles\[{indice}\]\[materiales\]\[(\d+)\]\[material\]$'
+                    )
+
+                    indices_materiales = sorted({
+                        int(coincidencia.group(1))
+                        for clave in request.POST.keys()
+                        if (coincidencia := patron_material.match(clave))
+                    })
+
+                    materiales_agregados = 0
+
+                    for indice_material in indices_materiales:
+                        prefijo = (
+                            f'muebles[{indice}]'
+                            f'[materiales][{indice_material}]'
+                        )
+
+                        material_id = request.POST.get(
+                            f'{prefijo}[material]'
+                        )
+
+                        if not material_id:
+                            continue
+
+                        material = Material.objects.get(
+                            pk=material_id,
+                            activo=True
+                        )
+
+                        cantidad_material = obtener_decimal(
+                            f'{prefijo}[cantidad]'
+                        )
+
+                        if cantidad_material <= 0:
+                            raise ValueError(
+                                'La cantidad de cada material debe ser mayor que cero.'
+                            )
+
+                        MaterialRequerido.objects.create(
+                            detallePresupuesto=detalle,
+                            material=material,
+                            cantidadRequerida=cantidad_material,
+                        )
+
+                        materiales_agregados += 1
+
+                    if materiales_agregados == 0:
+                        raise ValueError(
+                            f'El mueble "{descripcion}" debe tener al menos un material.'
+                        )
+
+                Entrega.objects.create(
+                    presupuesto=presupuesto,
+                    modalidadEntrega=modalidad,
+                    direccionEntrega=direccion,
+                    costoFlete=costo_flete,
+                )
+
+                RegistroCambio.objects.create(
+                    usuario=request.user if request.user.is_authenticated else None,
+                    entidad='Presupuesto',
+                    idEntidad=presupuesto.pk,
+                    accion=AccionAuditoria.CREAR,
+                    valorNuevo=(
+                        f'Presupuesto creado para {cliente}. '
+                        f'Estado: Pendiente. '
+                        f'Total: {presupuesto.montoTotal}'
+                    ),
+                )
+
+            return redirect('core:presupuestos')
+
+        except Cliente.DoesNotExist:
+            contexto['error'] = 'El cliente seleccionado no existe.'
+        except Material.DoesNotExist:
+            contexto['error'] = 'Uno de los materiales seleccionados no existe o está inactivo.'
+        except (ValueError, InvalidOperation, TypeError):
+            contexto['error'] = (
+                'Verificá los datos ingresados. Revisá cantidades, medidas e importes.'
+            )
+
+    return render(request, 'core/nuevo_presupuesto.html', contexto)
 
 
 def presupuestos(request):
