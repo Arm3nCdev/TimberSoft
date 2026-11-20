@@ -1,0 +1,662 @@
+
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block contenido %}
+
+<style>
+.form-presupuesto {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.form-seccion {
+    background: #fff;
+    border: 1px solid #e2e5eb;
+    border-radius: 12px;
+    padding: 22px;
+    margin-bottom: 20px;
+}
+
+.form-seccion h3 {
+    margin: 0 0 18px;
+    color: #1c2230;
+    font-size: 17px;
+}
+
+.form-seccion .descripcion {
+    color: #6b7385;
+    font-size: 13px;
+    margin: -10px 0 18px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.form-grid.tres-columnas {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.campo.completo {
+    grid-column: 1 / -1;
+}
+
+.campo label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #343b4b;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d8dce5;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 14px;
+    color: #1c2230;
+    background: #fff;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+    outline: none;
+    border-color: #1f4fa3;
+    box-shadow: 0 0 0 3px rgba(31,79,163,.10);
+}
+
+.campo textarea {
+    resize: vertical;
+    min-height: 90px;
+}
+
+.ayuda {
+    color: #7a8190;
+    font-size: 12px;
+}
+
+.mueble-card {
+    border: 1px solid #dfe3eb;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+    background: #fbfcfe;
+}
+
+.mueble-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.mueble-cabecera h4 {
+    margin: 0;
+    font-size: 15px;
+    color: #1f4fa3;
+}
+
+.materiales-bloque {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid #e2e5eb;
+}
+
+.materiales-bloque h5 {
+    margin: 0 0 12px;
+    font-size: 14px;
+}
+
+.material-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(120px, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 10px;
+}
+
+.btn-form {
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.btn-agregar {
+    background: #eaf0fb;
+    color: #1f4fa3;
+}
+
+.btn-eliminar {
+    background: #fff0f0;
+    color: #b42318;
+}
+
+.btn-form:hover {
+    filter: brightness(.96);
+}
+
+.resumen-presupuesto {
+    background: #f5f7fb;
+    border: 1px solid #dfe3eb;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.resumen-linea {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    font-size: 14px;
+}
+
+.resumen-total {
+    border-top: 1px solid #d8dce5;
+    margin-top: 8px;
+    padding-top: 14px;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.acciones-formulario {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 20px 0 30px;
+}
+
+@media (max-width: 700px) {
+    .form-grid,
+    .form-grid.tres-columnas {
+        grid-template-columns: 1fr;
+    }
+
+    .material-fila {
+        grid-template-columns: 1fr;
+    }
+
+    .form-seccion {
+        padding: 16px;
+    }
+}
+</style>
+
+<div class="encabezado">
+    <div>
+        <h2>Nuevo presupuesto</h2>
+        <p>Registrar una nueva solicitud de presupuesto de un cliente.</p>
+    </div>
+    <a href="{% url 'core:presupuestos' %}" class="btn">
+        Volver a presupuestos
+    </a>
+</div>
+
+<form method="post" class="form-presupuesto" id="formPresupuesto">
+    {% csrf_token %}
+
+    <!-- DATOS GENERALES -->
+    <section class="form-seccion">
+        <h3>1. Datos generales</h3>
+
+        <div class="form-grid">
+            <div class="campo completo">
+                <label for="cliente">Cliente *</label>
+                <select name="cliente" id="cliente" required>
+                    <option value="">Seleccionar cliente</option>
+                    {% for cliente in clientes %}
+                        <option value="{{ cliente.pk }}">
+                            {{ cliente }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="campo">
+                <label>Fecha de emisión</label>
+                <input type="text" value="{{ hoy|default:'Automática' }}" disabled>
+                <span class="ayuda">La fecha se registrará automáticamente.</span>
+            </div>
+
+            <div class="campo">
+                <label>Estado inicial</label>
+                <input type="text" value="Pendiente" disabled>
+            </div>
+        </div>
+    </section>
+
+    <!-- MUEBLES -->
+    <section class="form-seccion">
+        <h3>2. Muebles solicitados</h3>
+        <p class="descripcion">
+            Agregá cada mueble por separado. Cada uno puede tener sus propias
+            medidas, características y materiales.
+        </p>
+
+        <div id="listaMuebles"></div>
+
+        <button type="button" class="btn-form btn-agregar" id="agregarMueble">
+            + Agregar otro mueble
+        </button>
+    </section>
+
+    <!-- COSTOS Y ENTREGA -->
+    <section class="form-seccion">
+        <h3>3. Costos y entrega</h3>
+
+        <div class="form-grid">
+            <div class="campo">
+                <label for="costoManoObra">Costo de mano de obra (Gs.) *</label>
+                <input
+                    type="number"
+                    name="costoManoObra"
+                    id="costoManoObra"
+                    min="0"
+                    step="1"
+                    value="0"
+                    required
+                >
+                <span class="ayuda">Ingresá el importe correspondiente al trabajo.</span>
+            </div>
+
+            <div class="campo">
+                <label for="modalidadEntrega">Modalidad de entrega *</label>
+                <select name="modalidadEntrega" id="modalidadEntrega" required>
+                    {% for valor, etiqueta in modalidades %}
+                        <option value="{{ valor }}">{{ etiqueta }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="campo completo" id="grupoDireccion" hidden>
+                <label for="direccionEntrega">Dirección de entrega</label>
+                <input
+                    type="text"
+                    name="direccionEntrega"
+                    id="direccionEntrega"
+                    maxlength="200"
+                    placeholder="Ingresar dirección del cliente"
+                >
+            </div>
+
+            <div class="campo" id="grupoFlete" hidden>
+                <label for="costoFlete">Costo de flete (Gs.)</label>
+                <input
+                    type="number"
+                    name="costoFlete"
+                    id="costoFlete"
+                    min="0"
+                    step="1"
+                    value="0"
+                >
+            </div>
+        </div>
+    </section>
+
+    <!-- RESUMEN -->
+    <section class="form-seccion">
+        <h3>4. Resumen estimado</h3>
+
+        <div class="resumen-presupuesto">
+            <div class="resumen-linea">
+                <span>Subtotal de muebles</span>
+                <strong id="resumenMuebles">Gs. 0</strong>
+            </div>
+
+            <div class="resumen-linea">
+                <span>Mano de obra</span>
+                <strong id="resumenManoObra">Gs. 0</strong>
+            </div>
+
+            <div class="resumen-linea">
+                <span>Flete</span>
+                <strong id="resumenFlete">Gs. 0</strong>
+            </div>
+
+            <div class="resumen-linea resumen-total">
+                <span>Monto total estimado</span>
+                <strong id="resumenTotal">Gs. 0</strong>
+            </div>
+
+            <div class="resumen-linea">
+                <span>Seña estimada (50%)</span>
+                <strong id="resumenSena">Gs. 0</strong>
+            </div>
+        </div>
+
+        <p class="ayuda" style="margin-top:12px;">
+            Estos importes son una vista previa. El cálculo definitivo
+            se realizará en el servidor utilizando las reglas del sistema.
+        </p>
+    </section>
+
+    <div class="acciones-formulario">
+        <a href="{% url 'core:presupuestos' %}" class="btn">
+            Cancelar
+        </a>
+
+        <button type="submit" class="btn btn-primario">
+            Guardar presupuesto
+        </button>
+    </div>
+</form>
+
+<!-- PLANTILLA DE UN MUEBLE -->
+<template id="plantillaMueble">
+    <div class="mueble-card" data-mueble>
+        <div class="mueble-cabecera">
+            <h4 class="titulo-mueble">Mueble</h4>
+            <button type="button" class="btn-form btn-eliminar eliminar-mueble">
+                Eliminar mueble
+            </button>
+        </div>
+
+        <div class="form-grid">
+            <div class="campo completo">
+                <label>Descripción del mueble *</label>
+                <input
+                    type="text"
+                    data-campo="descripcion"
+                    required
+                    maxlength="200"
+                    placeholder="Ej.: Ropero, mesa, cocina integral..."
+                >
+            </div>
+
+            <div class="campo">
+                <label>Largo (cm)</label>
+                <input type="number" data-campo="largo" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="campo">
+                <label>Ancho (cm)</label>
+                <input type="number" data-campo="ancho" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="campo">
+                <label>Alto (cm)</label>
+                <input type="number" data-campo="alto" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="campo">
+                <label>Color o terminación</label>
+                <input type="text" data-campo="color" maxlength="100"
+                    placeholder="Ej.: Blanco, nogal, mate...">
+            </div>
+
+            <div class="campo">
+                <label>Cantidad de muebles *</label>
+                <input type="number" data-campo="cantidad" min="1" step="1" value="1" required>
+            </div>
+
+            <div class="campo">
+                <label>Margen adicional (Gs.)</label>
+                <input type="number" data-campo="margen" min="0" step="1" value="0">
+            </div>
+
+            <div class="campo completo">
+                <label>Detalle de medidas y características</label>
+                <textarea
+                    data-campo="detalleMedidas"
+                    placeholder="Describí divisiones, cajones, puertas, estantes, medidas especiales y cualquier otra característica..."
+                ></textarea>
+            </div>
+        </div>
+
+        <div class="materiales-bloque">
+            <h5>Materiales necesarios</h5>
+            <p class="ayuda">
+                Indicá cuánto material se necesita para fabricar una unidad de este mueble.
+            </p>
+
+            <div class="listaMateriales"></div>
+
+            <button type="button" class="btn-form btn-agregar agregar-material">
+                + Agregar material
+            </button>
+        </div>
+    </div>
+</template>
+
+<!-- PLANTILLA DE UN MATERIAL -->
+<template id="plantillaMaterial">
+    <div class="material-fila" data-material>
+        <div class="campo">
+            <label>Material *</label>
+            <select data-campo-material="material" required>
+                <option value="">Seleccionar material</option>
+                {% for material in materiales %}
+                    <option
+                        value="{{ material.pk }}"
+                        data-precio="{{ material.precioCosto }}"
+                    >
+                        {{ material }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="campo">
+            <label>Cantidad por unidad *</label>
+            <input
+                type="number"
+                data-campo-material="cantidad"
+                min="0.01"
+                step="0.01"
+                value="1"
+                required
+            >
+        </div>
+
+        <button type="button" class="btn-form btn-eliminar eliminar-material">
+            Quitar
+        </button>
+    </div>
+</template>
+
+<script>
+(function () {
+    const listaMuebles = document.getElementById('listaMuebles');
+    const plantillaMueble = document.getElementById('plantillaMueble');
+    const plantillaMaterial = document.getElementById('plantillaMaterial');
+    const agregarMueble = document.getElementById('agregarMueble');
+
+    let contadorMuebles = 0;
+
+    function agregarFilaMaterial(mueble, indiceMueble) {
+        const lista = mueble.querySelector('.listaMateriales');
+        const indiceMaterial = lista.querySelectorAll('[data-material]').length;
+
+        const fragmento = plantillaMaterial.content.cloneNode(true);
+        const fila = fragmento.querySelector('[data-material]');
+
+        fila.querySelector('[data-campo-material="material"]').name =
+            `muebles[${indiceMueble}][materiales][${indiceMaterial}][material]`;
+
+        fila.querySelector('[data-campo-material="cantidad"]').name =
+            `muebles[${indiceMueble}][materiales][${indiceMaterial}][cantidad]`;
+
+        lista.appendChild(fragmento);
+    }
+
+    function agregarNuevoMueble() {
+        const indice = contadorMuebles++;
+        const fragmento = plantillaMueble.content.cloneNode(true);
+        const mueble = fragmento.querySelector('[data-mueble]');
+
+        mueble.dataset.indice = indice;
+        mueble.querySelector('.titulo-mueble').textContent =
+            `Mueble ${listaMuebles.children.length + 1}`;
+
+        mueble.querySelectorAll('[data-campo]').forEach(campo => {
+            const clave = campo.dataset.campo;
+            campo.name = `muebles[${indice}][${clave}]`;
+        });
+
+        listaMuebles.appendChild(fragmento);
+
+        agregarFilaMaterial(
+            listaMuebles.lastElementChild,
+            indice
+        );
+
+        actualizarResumen();
+    }
+
+    agregarMueble.addEventListener('click', agregarNuevoMueble);
+
+    listaMuebles.addEventListener('click', function (evento) {
+        const boton = evento.target.closest('button');
+        if (!boton) return;
+
+        const mueble = boton.closest('[data-mueble]');
+
+        if (boton.classList.contains('eliminar-mueble')) {
+            mueble.remove();
+            actualizarTitulosMuebles();
+            actualizarResumen();
+        }
+
+        if (boton.classList.contains('agregar-material')) {
+            agregarFilaMaterial(mueble, mueble.dataset.indice);
+            actualizarResumen();
+        }
+
+        if (boton.classList.contains('eliminar-material')) {
+            const fila = boton.closest('[data-material]');
+            fila.remove();
+            actualizarResumen();
+        }
+    });
+
+    function actualizarTitulosMuebles() {
+        listaMuebles.querySelectorAll('[data-mueble]').forEach((mueble, i) => {
+            mueble.querySelector('.titulo-mueble').textContent =
+                `Mueble ${i + 1}`;
+        });
+    }
+
+    const modalidad = document.getElementById('modalidadEntrega');
+    const grupoDireccion = document.getElementById('grupoDireccion');
+    const grupoFlete = document.getElementById('grupoFlete');
+    const direccion = document.getElementById('direccionEntrega');
+    const flete = document.getElementById('costoFlete');
+
+    function actualizarEntrega() {
+        const esDomicilio = modalidad.value === 'DOMICILIO';
+
+        grupoDireccion.hidden = !esDomicilio;
+        grupoFlete.hidden = !esDomicilio;
+
+        direccion.required = esDomicilio;
+
+        if (!esDomicilio) {
+            direccion.value = '';
+            flete.value = '0';
+        }
+
+        actualizarResumen();
+    }
+
+    modalidad.addEventListener('change', actualizarEntrega);
+
+    function numero(valor) {
+        const resultado = parseFloat(valor);
+        return Number.isFinite(resultado) && resultado > 0 ? resultado : 0;
+    }
+
+    function guaranies(valor) {
+        return 'Gs. ' + Math.round(valor).toLocaleString('es-PY');
+    }
+
+    function actualizarResumen() {
+        let subtotalMuebles = 0;
+
+        listaMuebles.querySelectorAll('[data-mueble]').forEach(mueble => {
+            const cantidadMueble = numero(
+                mueble.querySelector('[data-campo="cantidad"]').value
+            );
+
+            const margen = numero(
+                mueble.querySelector('[data-campo="margen"]').value
+            );
+
+            let costoMaterialesPorUnidad = 0;
+
+            mueble.querySelectorAll('[data-material]').forEach(fila => {
+                const select = fila.querySelector('[data-campo-material="material"]');
+                const cantidad = numero(
+                    fila.querySelector('[data-campo-material="cantidad"]').value
+                );
+
+                const opcion = select.selectedOptions[0];
+                const precio = opcion ? numero(opcion.dataset.precio) : 0;
+
+                costoMaterialesPorUnidad += precio * cantidad;
+            });
+
+            subtotalMuebles +=
+                (costoMaterialesPorUnidad * cantidadMueble) + margen;
+        });
+
+        const manoObra = numero(
+            document.getElementById('costoManoObra').value
+        );
+
+        const costoFlete = modalidad.value === 'DOMICILIO'
+            ? numero(flete.value)
+            : 0;
+
+        const total = subtotalMuebles + manoObra + costoFlete;
+        const sena = total * 0.5;
+
+        document.getElementById('resumenMuebles').textContent =
+            guaranies(subtotalMuebles);
+
+        document.getElementById('resumenManoObra').textContent =
+            guaranies(manoObra);
+
+        document.getElementById('resumenFlete').textContent =
+            guaranies(costoFlete);
+
+        document.getElementById('resumenTotal').textContent =
+            guaranies(total);
+
+        document.getElementById('resumenSena').textContent =
+            guaranies(sena);
+    }
+
+    document.getElementById('formPresupuesto').addEventListener(
+        'input',
+        actualizarResumen
+    );
+
+    document.getElementById('formPresupuesto').addEventListener(
+        'change',
+        actualizarResumen
+    );
+
+    // Iniciar con un mueble y una fila de materiales.
+    agregarNuevoMueble();
+    actualizarEntrega();
+})();
+</script>
+
+{% endblock %}
