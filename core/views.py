@@ -3,10 +3,11 @@ from decimal import Decimal
 
 from django.db.models import F, Q
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils import timezone
 
 from .menu import titulo_por_slug
+from .forms import ClienteForm
 from .models import (
     Material,
     Pedido,
@@ -180,6 +181,16 @@ def clientes(request):
         'q': q,
     })
 
+
+def cliente_nuevo(request):
+    if request.method == 'POST':
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('core:clientes')
+    else:
+        form = ClienteForm()
+    return render(request, 'core/cliente_form.html', {'form': form})
 
 def caja(request):
     hoy = timezone.localdate()
