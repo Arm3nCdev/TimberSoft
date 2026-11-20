@@ -1,0 +1,111 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}Nuevo Presupuesto{% endblock %}
+{% block migas %}Ventas y Trabajos / <a href="{% url 'core:presupuestos' %}">Presupuestos</a> / <strong>Nuevo</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Nuevo presupuesto</h1>
+    <p class="sutil">Complete los datos del cliente, el trabajo y la entrega.</p>
+  </div>
+</div>
+
+<article class="panel">
+  <form class="formulario-presupuesto" method="post">
+    {% csrf_token %}
+    {% if error %}<p class="etiqueta etiqueta-roja">{{ error }}</p>{% endif %}
+
+    <div class="formulario-grilla">
+      <h2 class="formulario-seccion">Datos generales</h2>
+      <div class="campo-formulario">
+        <label for="cliente">Cliente *</label>
+        <select id="cliente" name="cliente" required>
+          <option value="">Seleccione un cliente</option>
+          {% for cliente in clientes %}
+            <option value="{{ cliente.pk }}" {% if datos.cliente == cliente.pk|stringformat:"s" %}selected{% endif %}>{{ cliente.obtenerNombreCompleto }} · RUC {{ cliente.rucCliente }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo-formulario">
+        <label for="fechaEmision">Fecha de emisión *</label>
+        <input id="fechaEmision" name="fechaEmision" type="date" value="{{ datos.fechaEmision|default:hoy|date:'Y-m-d' }}" required>
+      </div>
+      <div class="campo-formulario">
+        <label for="costoManoObra">Costo de mano de obra</label>
+        <input id="costoManoObra" name="costoManoObra" type="number" min="0" step="0.01" value="{{ datos.costoManoObra|default:'0.00' }}">
+      </div>
+
+      <h2 class="formulario-seccion">Detalle del mueble</h2>
+      <div class="campo-formulario">
+        <label for="descripcionMueble">Descripción del mueble *</label>
+        <input id="descripcionMueble" name="descripcionMueble" type="text" maxlength="200" value="{{ datos.descripcionMueble }}" required>
+      </div>
+      <div class="campo-formulario">
+        <label for="cantidad">Cantidad *</label>
+        <input id="cantidad" name="cantidad" type="number" min="1" value="{{ datos.cantidad|default:'1' }}" required>
+      </div>
+      <div class="campo-formulario">
+        <label for="largo">Largo (m)</label>
+        <input id="largo" name="largo" type="number" min="0" step="0.01" value="{{ datos.largo|default:'0.00' }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="ancho">Ancho (m)</label>
+        <input id="ancho" name="ancho" type="number" min="0" step="0.01" value="{{ datos.ancho|default:'0.00' }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="alto">Alto (m)</label>
+        <input id="alto" name="alto" type="number" min="0" step="0.01" value="{{ datos.alto|default:'0.00' }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="colorTerminacion">Color / Terminación</label>
+        <input id="colorTerminacion" name="colorTerminacion" type="text" maxlength="100" value="{{ datos.colorTerminacion }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="margen">Margen de ganancia</label>
+        <input id="margen" name="margen" type="number" min="0" step="0.01" value="{{ datos.margen|default:'0.00' }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="material">Material requerido</label>
+        <select id="material" name="material">
+          <option value="">Sin material asociado</option>
+          {% for material in materiales %}
+            <option value="{{ material.pk }}" {% if datos.material == material.pk|stringformat:"s" %}selected{% endif %}>{{ material.nombreMaterial }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo-formulario">
+        <label for="cantidadRequerida">Cantidad requerida</label>
+        <input id="cantidadRequerida" name="cantidadRequerida" type="number" min="0" step="0.01" value="{{ datos.cantidadRequerida }}">
+      </div>
+
+      <h2 class="formulario-seccion">Entrega</h2>
+      <div class="campo-formulario">
+        <label for="modalidadEntrega">Modalidad de entrega *</label>
+        <select id="modalidadEntrega" name="modalidadEntrega" required>
+          {% for valor, etiqueta in modalidades %}
+            <option value="{{ valor }}" {% if datos.modalidadEntrega == valor or not datos and valor == 'RETIRO_TALLER' %}selected{% endif %}>{{ etiqueta }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="campo-formulario">
+        <label for="costoFlete">Costo de flete</label>
+        <input id="costoFlete" name="costoFlete" type="number" min="0" step="0.01" value="{{ datos.costoFlete|default:'0.00' }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="direccionEntrega">Dirección de entrega</label>
+        <input id="direccionEntrega" name="direccionEntrega" type="text" maxlength="200" value="{{ datos.direccionEntrega }}">
+      </div>
+      <div class="campo-formulario">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" name="observaciones">{{ datos.observaciones }}</textarea>
+      </div>
+    </div>
+
+    <div class="formulario-acciones">
+      <a class="btn" href="{% url 'core:presupuestos' %}">Cancelar</a>
+      <button class="btn btn-primario" type="submit">Guardar Presupuesto</button>
+    </div>
+  </form>
+</article>
+{% endblock %}

@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 from core.models import (
     Usuario,
@@ -255,3 +256,36 @@ class ReglasDeNegocioTestCase(TestCase):
         self.assertEqual(self.empleado.obtenerPedidosAsignados()[0], ped_empleado)
         self.assertTrue(self.admin.validarPermiso('gestionar_compras'))
         self.assertFalse(self.empleado.validarPermiso('gestionar_compras'))
+
+    def test_pantalla_presupuestos_muestra_boton_nuevo(self):
+        response = self.client.get(reverse('core:presupuestos'))
+
+        self.assertContains(response, 'Nuevo Presupuesto')
+        self.assertContains(response, reverse('core:nuevo_presupuesto'))
+
+    def test_nuevo_presupuesto_crea_presupuesto_detalle_y_entrega(self):
+        response = self.client.post(reverse('core:nuevo_presupuesto'), {
+            'cliente': self.cliente.pk,
+            'fechaEmision': timezone.localdate().isoformat(),
+            'costoManoObra': '50000.00',
+            'descripcionMueble': 'Mesa de cedro',
+            'largo': '1.20',
+            'ancho': '0.80',
+            'alto': '0.75',
+            'colorTerminacion': 'Natural',
+            'cantidad': '2',
+            'margen': '10000.00',
+            'material': self.material.pk,
+            'cantidadRequerida': '2.00',
+            'modalidadEntrega': ModalidadEntrega.DOMICILIO,
+            'direccionEntrega': 'Av. Siempre Viva 123',
+            'costoFlete': '20000.00',
+        })
+
+        self.assertRedirects(response, reverse('core:presupuestos'))
+        presupuesto = Presupuesto.objects.get(cliente=self.cliente)
+        self.assertEqual(presupuesto.estadoPresupuesto, EstadoPresupuesto.PENDIENTE)
+        detalle = presupuesto.detalles.get()
+        self.assertEqual(detalle.descripcionMueble, 'Mesa de cedro')
+        self.assertTrue(detalle.materiales_requeridos.filter(material=self.material).exists())
+        self.assertEqual(presupuesto.entrega.modalidadEntrega, ModalidadEntrega.DOMICILIO)

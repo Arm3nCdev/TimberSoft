@@ -64,11 +64,11 @@ class AccionAuditoria(models.TextChoices):
     MODIFICAR = 'MODIFICAR', 'Modificar'
     ELIMINAR = 'ELIMINAR', 'Eliminar'
 
-class estadoFactura(models.TextChoises):
-    EMITIDA='Emitida','Emitida'
-    ANULADA='Anulada','Anulada
+class EstadoFactura(models.TextChoices):
+    EMITIDA = 'Emitida', 'Emitida'
+    ANULADA = 'Anulada', 'Anulada'
 
-class Tibrado(models.Model):
+class Timbrado(models.Model):
     idTmbrado=models.AutoField(primary_key=True)
     numeroTimbrado = models.CharField('Número de timbrado', max_length=20, unique=True)
     establecimiento = models.CharField('Establecimiento', max_length=3, default='001')
@@ -105,7 +105,7 @@ def estadoVigente(self, fecha=None):
 
 class Factura(models.Model):
     idFactura = models.AutoField(primary_key=True)
-    pedido = models.OneToOneField(Pedido, on_delete=models.PROTECT, related_name='factura')
+    pedido = models.OneToOneField('Pedido', on_delete=models.PROTECT, related_name='factura')
     timbrado = models.ForeignKey(Timbrado, on_delete=models.PROTECT, related_name='facturas')
     numeroFactura = models.CharField('Número de factura', max_length=20, unique=True)
     fechaEmision = models.DateField('Fecha de emisión', default=timezone.localdate)

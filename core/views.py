@@ -1,10 +1,11 @@
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db.models import F, Q
 from django.http import Http404
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.db import transaction
 
 from .menu import titulo_por_slug
 from .models import (
@@ -23,6 +24,10 @@ from .models import (
     EstadoPedido,
     EstadoPresupuesto,
     RolEnum,
+    DetallePresupuesto,
+    MaterialRequerido,
+    Entrega,
+    ModalidadEntrega,
 )
 
 
@@ -114,6 +119,79 @@ def presupuestos(request):
         'q': q,
         'estado_seleccionado': estado,
         'estados': EstadoPresupuesto.choices,
+    })
+
+
+def nuevo_presupuesto(request):
+    error = None
+    if request.method == 'POST':
+        try:
+            cliente_id = request.POST.get('cliente') or request.POST.get('cliente_id')
+            if not cliente_id:
+                raise ValueError('Debe seleccionar un cliente.')
+
+            costo_mano_obra = Decimal(request.POST.get('costoManoObra') or request.POST.get('costo_mano_obra') or '0')
+            cantidad = int(request.POST.get('cantidad') or '1')
+            if cantidad < 1:
+                raise ValueError('La cantidad debe ser al menos 1.')
+
+            descripcion = (request.POST.get('descripcionMueble') or request.POST.get('descripcion') or '').strip()
+            if not descripcion:
+                raise ValueError('Debe ingresar la descripción del mueble.')
+
+            modalidad = request.POST.get('modalidadEntrega') or request.POST.get('modalidad_entrega') or ModalidadEntrega.RETIRO_TALLER
+            costo_flete = Decimal(request.POST.get('costoFlete') or request.POST.get('costo_flete') or '0')
+
+            with transaction.atomic():
+                presupuesto = Presupuesto.objects.create(
+                    cliente_id=cliente_id,
+                    fechaEmision=request.POST.get('fechaEmision') or timezone.localdate(),
+                    costoManoObra=costo_mano_obra,
+                    estadoPresupuesto=EstadoPresupuesto.PENDIENTE,
+                )
+                detalle = DetallePresupuesto.objects.create(
+                    presupuesto=presupuesto,
+                    descripcionMueble=descripcion,
+                    largo=Decimal(request.POST.get('largo') or '0'),
+                    ancho=Decimal(request.POST.get('ancho') or '0'),
+                    alto=Decimal(request.POST.get('alto') or '0'),
+                    colorTerminacion=request.POST.get('colorTerminacion', '').strip(),
+                    cantidad=cantidad,
+                    margen=Decimal(request.POST.get('margen') or '0'),
+                )
+                Entrega.objects.create(
+                    presupuesto=presupuesto,
+                    modalidadEntrega=modalidad,
+                    direccionEntrega=(request.POST.get('direccionEntrega') or request.POST.get('direccion_entrega') or '').strip(),
+                    costoFlete=costo_flete if modalidad == ModalidadEntrega.DOMICILIO else Decimal('0'),
+                    observaciones=request.POST.get('observaciones', '').strip(),
+                )
+
+                material_id = request.POST.get('material') or request.POST.get('material_id')
+                cantidad_requerida = request.POST.get('cantidadRequerida') or request.POST.get('cantidad_requerida')
+                if material_id:
+                    if not cantidad_requerida:
+                        raise ValueError('Debe indicar la cantidad requerida del material.')
+                    cantidad_material = Decimal(cantidad_requerida)
+                    if cantidad_material <= 0:
+                        raise ValueError('La cantidad requerida debe ser mayor a 0.')
+                    MaterialRequerido.objects.create(
+                        detallePresupuesto=detalle,
+                        material_id=material_id,
+                        cantidadRequerida=cantidad_material,
+                    )
+
+            return redirect('core:presupuestos')
+        except (ValueError, InvalidOperation, Material.DoesNotExist, Cliente.DoesNotExist):
+            error = 'No se pudo crear el presupuesto. Verifique los datos ingresados.'
+
+    return render(request, 'core/nuevo_presupuesto.html', {
+        'clientes': Cliente.objects.all(),
+        'materiales': Material.objects.filter(activo=True),
+        'modalidades': ModalidadEntrega.choices,
+        'error': error,
+        'datos': request.POST,
+        'hoy': timezone.localdate(),
     })
 
 

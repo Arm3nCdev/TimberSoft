@@ -259,6 +259,31 @@ h2 { margin: 0; font-size: 16px; }
 }
 .buscador input:focus { outline: 2px solid #b7cbf3; border-color: var(--primario); }
 
+.formulario-presupuesto { padding: 18px; }
+.formulario-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.campo-formulario { display: flex; flex-direction: column; gap: 6px; }
+.campo-formulario label { font-size: 13px; font-weight: 600; }
+.campo-formulario input,
+.campo-formulario select,
+.campo-formulario textarea {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  font: inherit;
+  background: var(--superficie);
+}
+.campo-formulario textarea { min-height: 84px; resize: vertical; }
+.campo-formulario input:focus,
+.campo-formulario select:focus,
+.campo-formulario textarea:focus { outline: 2px solid #b7cbf3; border-color: var(--primario); }
+.formulario-acciones { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.formulario-seccion { grid-column: 1 / -1; border-top: 1px solid var(--borde); padding-top: 14px; }
+
 .construccion { text-align: center; padding: 60px 20px; }
 .construccion-icono { font-size: 48px; margin-bottom: 8px; }
 .construccion .btn { margin-top: 18px; }
