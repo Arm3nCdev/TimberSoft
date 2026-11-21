@@ -10,10 +10,13 @@
     <h1>Clientes</h1>
     <p class="sutil">{{ clientes|length }} cliente{{ clientes|length|pluralize }} · Herencia de datos de Persona y registro de presupuestos / pedidos</p>
   </div>
-  <form class="buscador" method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, RUC o CI…" autofocus>
-    <button class="btn">Buscar</button>
-  </form>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a href="{% url 'core:cliente_crear' %}" class="btn btn-primario">+ Registrar Cliente</a>
+    <form class="buscador" method="get">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por nombre, RUC o CI…" autofocus>
+      <button class="btn">Buscar</button>
+    </form>
+  </div>
 </div>
 
 <article class="panel">
@@ -29,6 +32,7 @@
           <th>Fecha Registro</th>
           <th class="num">Presupuestos</th>
           <th class="num">Pedidos</th>
+          <th style="text-align:center;">Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -44,9 +48,12 @@
             <td>{{ cli.fechaRegistro|date:"d/m/Y" }}</td>
             <td class="num">{{ cli.consultarPresupuestos|length }}</td>
             <td class="num"><strong>{{ cli.consultarHistorialPedidos|length }}</strong></td>
+            <td style="text-align:center; white-space:nowrap;">
+              <a href="{% url 'core:cliente_editar' cli.idPersona %}" class="btn" style="padding:4px 8px; font-size:12px;">Editar</a>
+            </td>
           </tr>
         {% empty %}
-          <tr><td colspan="8" class="vacio">No se encontraron clientes.</td></tr>
+          <tr><td colspan="9" class="vacio">No se encontraron clientes.</td></tr>
         {% endfor %}
       </tbody>
     </table>

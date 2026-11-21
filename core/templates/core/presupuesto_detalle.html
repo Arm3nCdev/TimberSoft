@@ -1,0 +1,174 @@
+{% extends 'core/base.html' %}
+{% load formato_py %}
+
+{% block titulo %}Presupuesto #{{ pres.idPresupuesto|stringformat:"05d" }}{% endblock %}
+{% block migas %}Ventas y Trabajos / <a href="{% url 'core:presupuestos' %}">Presupuestos</a> / <strong>#{{ pres.idPresupuesto|stringformat:"05d" }}</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Presupuesto #{{ pres.idPresupuesto|stringformat:"05d" }}</h1>
+    <p class="sutil">Emitido el {{ pres.fechaEmision|date:"d \d\e F \d\e Y" }} para {{ pres.cliente.obtenerNombreCompleto }}</p>
+  </div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    {% if pres.estadoPresupuesto == 'PENDIENTE' %}
+      <a href="{% url 'core:presupuesto_aprobar' pres.idPresupuesto %}" class="btn btn-primario" onclick="return confirm('¿Aprobar este presupuesto?');">✓ Aprobar</a>
+      <a href="{% url 'core:presupuesto_rechazar' pres.idPresupuesto %}" class="btn" style="color:var(--rojo);" onclick="return confirm('¿Rechazar este presupuesto?');">✗ Rechazar</a>
+    {% elif pres.estadoPresupuesto == 'APROBADO' and not pres.pedido %}
+      <a href="{% url 'core:presupuesto_sena' pres.idPresupuesto %}" class="btn btn-primario" onclick="return confirm('¿Registrar el pago exacto del 50% de seña y crear el pedido?');">
+        💵 Pagar Seña ({{ pres.montoSena|guaranies }}) y Crear Pedido
+      </a>
+    {% endif %}
+    <a href="{% url 'core:presupuestos' %}" class="btn">← Volver</a>
+  </div>
+</div>
+
+<section class="kpis">
+  <article class="kpi">
+    <span class="kpi-etiqueta">Estado actual</span>
+    <strong class="kpi-valor">
+      <span class="etiqueta {% if pres.estadoPresupuesto == 'APROBADO' %}etiqueta-verde{% elif pres.estadoPresupuesto == 'RECHAZADO' %}etiqueta-roja{% else %}etiqueta-ambar{% endif %}" style="font-size:16px;">
+        {{ pres.get_estadoPresupuesto_display }}
+      </span>
+    </strong>
+    <span class="kpi-nota">
+      {% if pres.pedido %}
+        Asociado a Pedido #{{ pres.pedido.idPedido|stringformat:"04d" }} ({{ pres.pedido.get_estadoPedido_display }})
+      {% else %}
+        Sin pedido generado aún
+      {% endif %}
+    </span>
+  </article>
+
+  <article class="kpi">
+    <span class="kpi-etiqueta">Monto Total</span>
+    <strong class="kpi-valor">{{ pres.montoTotal|guaranies }}</strong>
+    <span class="kpi-nota">Subtotales + Mano de Obra + Flete</span>
+  </article>
+
+  <article class="kpi">
+    <span class="kpi-etiqueta">Seña requerida (50%)</span>
+    <strong class="kpi-valor" style="color:var(--primario);">{{ pres.montoSena|guaranies }}</strong>
+    <span class="kpi-nota">Regla 3: Pago SENA debe ser exactamente el 50%</span>
+  </article>
+
+  <article class="kpi">
+    <span class="kpi-etiqueta">Saldo Pendiente</span>
+    <strong class="kpi-valor" {% if pres.saldoPendiente > 0 %}style="color:var(--rojo);"{% endif %}>{{ pres.saldoPendiente|guaranies }}</strong>
+    <span class="kpi-nota">Pagado hasta ahora: {{ pres.montoPagado|guaranies }}</span>
+  </article>
+</section>
+
+<div class="grilla-2">
+  <article class="panel">
+    <header class="panel-cab">
+      <h2>Muebles y Detalles Fabricación</h2>
+    </header>
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Mueble</th>
+            <th>Dimensiones</th>
+            <th>Terminación</th>
+            <th class="num">Cant.</th>
+            <th class="num">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in pres.detalles.all %}
+            <tr>
+              <td>
+                <strong>{{ d.descripcionMueble }}</strong>
+                {% for r in d.materiales_requeridos.all %}
+                  <div class="sutil">• {{ r.material.nombreMaterial }}: {{ r.cantidadRequerida }} {{ r.material.unidadMedida }} (Disponibilidad: {% if r.verificarDisponibilidad %}OK{% else %}Falta stock{% endif %})</div>
+                {% endfor %}
+              </td>
+              <td>{{ d.largo }}m × {{ d.ancho }}m × {{ d.alto }}m</td>
+              <td>{{ d.colorTerminacion|default:"Estándar" }}</td>
+              <td class="num">{{ d.cantidad }}</td>
+              <td class="num"><strong>{{ d.subtotal|guaranies }}</strong></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="vacio">No hay muebles registrados.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <header class="panel-cab">
+      <h2>Modalidad de Entrega y Liquidación</h2>
+    </header>
+    <div style="padding: 18px;">
+      <p><strong>Cliente:</strong> {{ pres.cliente.obtenerNombreCompleto }} (RUC: {{ pres.cliente.rucCliente }})</p>
+      <p><strong>Teléfono:</strong> {{ pres.cliente.telefono|default:"No registrado" }}</p>
+
+      {% if pres.entrega %}
+        <p>
+          <strong>Modalidad:</strong>
+          <span class="etiqueta {% if pres.entrega.modalidadEntrega == 'DOMICILIO' %}etiqueta-verde{% else %}etiqueta-ambar{% endif %}">
+            {{ pres.entrega.get_modalidadEntrega_display }}
+          </span>
+        </p>
+        {% if pres.entrega.modalidadEntrega == 'DOMICILIO' %}
+          <p><strong>Dirección:</strong> {{ pres.entrega.direccionEntrega|default:"A coordinar" }}</p>
+          <p><strong>Costo de flete:</strong> {{ pres.entrega.costoFlete|guaranies }}</p>
+        {% else %}
+          <p class="sutil">El cliente retira directamente del taller (flete no suma al monto total).</p>
+        {% endif %}
+      {% endif %}
+
+      <div style="border-top:1px solid var(--borde); margin-top:16px; padding-top:12px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>Costo Mano de Obra:</span>
+          <strong>{{ pres.costoManoObra|guaranies }}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <span>Flete adicional:</span>
+          <strong>{% if pres.entrega.modalidadEntrega == 'DOMICILIO' %}{{ pres.entrega.costoFlete|guaranies }}{% else %}₲ 0{% endif %}</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:16px; border-top:1px dashed var(--borde); padding-top:8px;">
+          <span><strong>Monto Total Final:</strong></span>
+          <strong style="color:var(--primario);">{{ pres.montoTotal|guaranies }}</strong>
+        </div>
+      </div>
+    </div>
+  </article>
+</div>
+
+<div style="margin-top:20px;">
+  <article class="panel">
+    <header class="panel-cab">
+      <h2>Historial de Pagos Recibidos ({{ pres.pagos.count }})</h2>
+    </header>
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Comprobante</th>
+            <th>Fecha</th>
+            <th>Tipo de Pago</th>
+            <th>Medio de Pago</th>
+            <th class="num">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in pres.pagos.all %}
+            <tr>
+              <td class="mono">{{ pago.nroComprobante|default:pago.idPago }}</td>
+              <td>{{ pago.fechaPago|date:"d/m/Y" }}</td>
+              <td><span class="etiqueta etiqueta-verde">{{ pago.get_tipoPago_display }}</span></td>
+              <td>{{ pago.get_medioPago_display }}</td>
+              <td class="num"><strong>{{ pago.montoPago|guaranies }}</strong></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="vacio">No hay pagos registrados para este presupuesto.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</div>
+{% endblock %}

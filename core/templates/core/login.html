@@ -1,0 +1,51 @@
+{% load static %}
+<!doctype html>
+<html lang="es-PY">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iniciar Sesión · TimberSoft</title>
+  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+</head>
+
+<body class="login-fondo">
+  <div class="login-card">
+    <div class="login-cabecera">
+      <div class="marca-logo">🪚</div>
+      <h2>TimberSoft</h2>
+      <p class="sutil">Carpintería Fabmag · Control de Producción y Gestión</p>
+    </div>
+
+    {% if messages %}
+    <div class="mensajes">
+      {% for message in messages %}
+      <div class="alerta alerta-{{ message.tags|default:'info' }}">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="formulario" style="padding:0;">
+      {% csrf_token %}
+      <div class="campo">
+        <label for="id_username">Usuario</label>
+        <input type="text" name="username" id="id_username" class="campo-input" required autofocus
+          placeholder="Nombre de usuario">
+      </div>
+
+      <div class="campo">
+        <label for="id_password">Contraseña</label>
+        <input type="password" name="password" id="id_password" class="campo-input" required placeholder="••••••••">
+      </div>
+
+      <button type="submit" class="btn btn-primario"
+        style="width:100%; justify-content:center; padding:12px; margin-top:8px;">
+        Iniciar sesión
+      </button>
+    </form>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,65 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}Centro de Reportes{% endblock %}
+{% block migas %}Reportes / <strong>Listados y Exportación</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Centro de reportes y exportación</h1>
+    <p class="sutil">Generación de informes gerenciales con exportación directa a Excel y formato para impresión / PDF</p>
+  </div>
+</div>
+
+<div class="kpis" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+  <!-- Reporte de Pedidos -->
+  <article class="panel" style="padding: 20px;">
+    <h2>📋 Reporte de Pedidos de Taller</h2>
+    <p class="sutil" style="margin: 8px 0 16px 0;">Estado de producción, fechas de entrega, responsables y saldos pendientes por cobrar.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'core:reporte_excel' 'pedidos' %}" class="btn btn-primario" style="background:#1d7a46; border-color:#1d7a46;">📥 Exportar a Excel</a>
+      <a href="{% url 'core:reporte_imprimir' 'pedidos' %}" target="_blank" class="btn">🖨️ Imprimir / PDF</a>
+    </div>
+  </article>
+
+  <!-- Reporte de Presupuestos -->
+  <article class="panel" style="padding: 20px;">
+    <h2>📄 Reporte de Presupuestos</h2>
+    <p class="sutil" style="margin: 8px 0 16px 0;">Costeo de muebles, mano de obra, flete según entrega y cálculo de seña del 50%.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'core:reporte_excel' 'presupuestos' %}" class="btn btn-primario" style="background:#1d7a46; border-color:#1d7a46;">📥 Exportar a Excel</a>
+      <a href="{% url 'core:reporte_imprimir' 'presupuestos' %}" target="_blank" class="btn">🖨️ Imprimir / PDF</a>
+    </div>
+  </article>
+
+  <!-- Reporte de Inventario -->
+  <article class="panel" style="padding: 20px;">
+    <h2>🪵 Reporte de Inventario y Stock</h2>
+    <p class="sutil" style="margin: 8px 0 16px 0;">Existencias de maderas, tableros, herrajes, stock crítico y valorización total en taller.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'core:reporte_excel' 'inventario' %}" class="btn btn-primario" style="background:#1d7a46; border-color:#1d7a46;">📥 Exportar a Excel</a>
+      <a href="{% url 'core:reporte_imprimir' 'inventario' %}" target="_blank" class="btn">🖨️ Imprimir / PDF</a>
+    </div>
+  </article>
+
+  <!-- Reporte de Caja y Finanzas -->
+  <article class="panel" style="padding: 20px;">
+    <h2>💵 Reporte Financiero y Cierre de Caja</h2>
+    <p class="sutil" style="margin: 8px 0 16px 0;">Ingresos por cobros, egresos por compras y gastos, y balances netos diarios.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'core:reporte_excel' 'caja' %}" class="btn btn-primario" style="background:#1d7a46; border-color:#1d7a46;">📥 Exportar a Excel</a>
+      <a href="{% url 'core:reporte_imprimir' 'caja' %}" target="_blank" class="btn">🖨️ Imprimir / PDF</a>
+    </div>
+  </article>
+
+  <!-- Reporte de Clientes -->
+  <article class="panel" style="padding: 20px;">
+    <h2>👥 Reporte de Clientes</h2>
+    <p class="sutil" style="margin: 8px 0 16px 0;">Directorio de clientes, RUC, teléfono, historial de presupuestos y pedidos activos.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <a href="{% url 'core:reporte_excel' 'clientes' %}" class="btn btn-primario" style="background:#1d7a46; border-color:#1d7a46;">📥 Exportar a Excel</a>
+      <a href="{% url 'core:reporte_imprimir' 'clientes' %}" target="_blank" class="btn">🖨️ Imprimir / PDF</a>
+    </div>
+  </article>
+</div>
+{% endblock %}

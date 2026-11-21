@@ -11,58 +11,108 @@
   </div>
 </div>
 
+{% if es_empleado %}
+<div class="banner-rol banner-empleado">
+  <span>🔧</span>
+  <div>
+    <strong>Panel Operativo de Taller — Operario: {{ request.user.obtenerNombreCompleto|default:request.user.username
+      }}</strong><br>
+  </div>
+</div>
+{% else %}
+<div class="banner-rol banner-admin">
+  <span>👑</span>
+  <div>
+    <strong>Panel Integral de Administración — {{ request.user.obtenerNombreCompleto|default:request.user.username
+      }}</strong><br>
+    Control completo del taller, finanzas de caja, compras a proveedores, costos y reportes económicos.
+  </div>
+</div>
+{% endif %}
+
 <section class="kpis">
   <article class="kpi">
-    <span class="kpi-etiqueta">Trabajos en proceso</span>
+    <span class="kpi-etiqueta">{% if es_empleado %}Mis trabajos en proceso{% else %}Trabajos en producción{% endif
+      %}</span>
     <strong class="kpi-valor">{{ en_produccion }}</strong>
-    <span class="kpi-nota">{{ presupuestos }} presupuesto{{ presupuestos|pluralize }} pendiente{{ presupuestos|pluralize }}</span>
+    <span class="kpi-nota">{% if es_empleado %}Órdenes asignadas en curso{% else %}{{ presupuestos }} presupuesto{{
+      presupuestos|pluralize }} pendiente{{ presupuestos|pluralize }}{% endif %}</span>
   </article>
   <article class="kpi {% if atrasados %}kpi-alerta{% endif %}">
-    <span class="kpi-etiqueta">Entregas próximos 7 días</span>
+    <span class="kpi-etiqueta">{% if es_empleado %}Mis entregas próx. 7 días{% else %}Entregas próximos 7 días{% endif
+      %}</span>
     <strong class="kpi-valor">{{ entregas_semana }}</strong>
-    <span class="kpi-nota">{% if atrasados %}{{ atrasados }} atrasado{{ atrasados|pluralize }}{% else %}Sin atrasos{% endif %}</span>
+    <span class="kpi-nota">{% if atrasados %}{{ atrasados }} atrasado{{ atrasados|pluralize }}{% else %}Sin atrasos{%
+      endif %}</span>
   </article>
+
+  {% if es_empleado %}
+  <article class="kpi {% if atrasados %}kpi-alerta{% endif %}">
+    <span class="kpi-etiqueta">Mis pedidos atrasados</span>
+    <strong class="kpi-valor">{{ atrasados }}</strong>
+    <span class="kpi-nota">{% if atrasados %}Requieren atención en taller{% else %}Al día{% endif %}</span>
+  </article>
+  {% else %}
   <article class="kpi">
-    <span class="kpi-etiqueta">Saldo por cobrar</span>
+    <span class="kpi-etiqueta">Saldo total por cobrar</span>
     <strong class="kpi-valor">{{ saldo_cobrar|guaranies }}</strong>
-    <span class="kpi-nota">Total pedidos menos pagos recibidos</span>
+    <span class="kpi-nota">Total pedidos menos señas y pagos</span>
   </article>
+  {% endif %}
+
   <article class="kpi {% if cantidad_stock_bajo %}kpi-alerta{% endif %}">
-    <span class="kpi-etiqueta">Materiales a reponer</span>
+    <span class="kpi-etiqueta">Materiales en stock crítico</span>
     <strong class="kpi-valor">{{ cantidad_stock_bajo }}</strong>
-    <a class="kpi-nota" href="{% url 'core:materiales' %}?stock=bajo">Ver listado →</a>
+    <a class="kpi-nota" href="{% url 'core:materiales' %}?stock=bajo">Ver listado de stock →</a>
   </article>
 </section>
 
 <section class="grilla-2">
   <article class="panel">
     <header class="panel-cab">
-      <h2>Próximas entregas</h2>
-      <a href="{% url 'core:pedidos' %}">Ver todos los pedidos →</a>
+      <h2>{% if es_empleado %}Próximas entregas de mis pedidos{% else %}Próximas entregas (Todos los responsables){%
+        endif %}</h2>
+      <a href="{% url 'core:pedidos' %}">{% if es_empleado %}Ver mis pedidos →{% else %}Ver todos los pedidos →{% endif
+        %}</a>
     </header>
     <div class="tabla-scroll">
       <table class="tabla">
-        <thead><tr><th>Pedido</th><th>Trabajo</th><th>Entrega</th><th class="num">Saldo</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Trabajo</th>
+            <th>Entrega</th>
+            {% if not es_empleado %}<th class="num">Saldo</th>{% else %}<th>Estado</th>{% endif %}
+          </tr>
+        </thead>
         <tbody>
           {% for t in proximas_entregas %}
-            <tr>
-              <td class="mono">PED #{{ t.idPedido|stringformat:"04d" }}</td>
-              <td>
-                {{ t.descripcion }}
-                <div class="sutil">{{ t.cliente.obtenerNombreCompleto }} · Resp: {{ t.responsable.username }}</div>
-              </td>
-              <td>
-                {{ t.fechaEntregaEstimada|date:"d/m" }}
-                <div>
-                  <span class="etiqueta {% if t.fechaEntregaEstimada < hoy %}etiqueta-roja{% elif t.estadoPedido == 'TERMINADO' %}etiqueta-verde{% elif t.estadoPedido == 'ENTREGADO' %}etiqueta-azul{% else %}etiqueta-ambar{% endif %}">
-                    {% if t.fechaEntregaEstimada < hoy and t.estadoPedido != 'ENTREGADO' %}Atrasado{% else %}{{ t.get_estadoPedido_display }}{% endif %}
-                  </span>
-                </div>
-              </td>
-              <td class="num">{{ t.saldo|guaranies }}</td>
-            </tr>
+          <tr>
+            <td class="mono">PED #{{ t.idPedido|stringformat:"04d" }}</td>
+            <td>
+              {{ t.descripcion }}
+              <div class="sutil">{{ t.cliente.obtenerNombreCompleto }} · Resp: <strong>{{ t.responsable.username
+                  }}</strong></div>
+            </td>
+            <td>
+              {{ t.fechaEntregaEstimada|date:"d/m" }}
+              <div>
+                <span
+                  class="etiqueta {% if t.fechaEntregaEstimada < hoy %}etiqueta-roja{% elif t.estadoPedido == 'TERMINADO' %}etiqueta-verde{% elif t.estadoPedido == 'ENTREGADO' %}etiqueta-azul{% else %}etiqueta-ambar{% endif %}">
+                  {% if t.fechaEntregaEstimada < hoy and t.estadoPedido !='ENTREGADO' %}Atrasado{% else %}{{
+                    t.get_estadoPedido_display }}{% endif %} </span>
+              </div>
+            </td>
+            {% if not es_empleado %}
+            <td class="num">{{ t.saldo|guaranies }}</td>
+            {% else %}
+            <td><span class="etiqueta etiqueta-azul">{{ t.get_estadoPedido_display }}</span></td>
+            {% endif %}
+          </tr>
           {% empty %}
-            <tr><td colspan="4" class="vacio">No hay pedidos pendientes de entrega.</td></tr>
+          <tr>
+            <td colspan="4" class="vacio">No hay pedidos pendientes de entrega.</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
@@ -76,16 +126,26 @@
     </header>
     <div class="tabla-scroll">
       <table class="tabla">
-        <thead><tr><th>Material</th><th class="num">Stock actual</th><th class="num">Mínimo</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Material</th>
+            <th class="num">Stock actual</th>
+            <th class="num">Mínimo</th>
+          </tr>
+        </thead>
         <tbody>
           {% for m in stock_bajo %}
-            <tr>
-              <td>{{ m.nombreMaterial }}<div class="sutil">{{ m.codigo }}</div></td>
-              <td class="num"><span class="etiqueta etiqueta-roja">{{ m.stockActual|cantidad }} {{ m.unidadMedida }}</span></td>
-              <td class="num">{{ m.stockMinimo|cantidad }}</td>
-            </tr>
+          <tr>
+            <td>{{ m.nombreMaterial }}<div class="sutil">{{ m.codigo }}</div>
+            </td>
+            <td class="num"><span class="etiqueta etiqueta-roja">{{ m.stockActual|cantidad }} {{ m.unidadMedida
+                }}</span></td>
+            <td class="num">{{ m.stockMinimo|cantidad }}</td>
+          </tr>
           {% empty %}
-            <tr><td colspan="3" class="vacio">Todo el stock está por encima del mínimo.</td></tr>
+          <tr>
+            <td colspan="3" class="vacio">Todo el stock está por encima del mínimo.</td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>

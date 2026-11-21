@@ -10,11 +10,14 @@
     <h1>Presupuestos de clientes</h1>
     <p class="sutil">{{ presupuestos|length }} presupuesto{{ presupuestos|length|pluralize }} · Costeo con materiales requeridos, mano de obra y flete</p>
   </div>
-  <form class="buscador" method="get">
-    {% if estado_seleccionado %}<input type="hidden" name="estado" value="{{ estado_seleccionado }}">{% endif %}
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por cliente o mueble…" autofocus>
-    <button class="btn">Buscar</button>
-  </form>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a href="{% url 'core:presupuesto_crear' %}" class="btn btn-primario">+ Nuevo Presupuesto</a>
+    <form class="buscador" method="get">
+      {% if estado_seleccionado %}<input type="hidden" name="estado" value="{{ estado_seleccionado }}">{% endif %}
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por cliente o mueble…" autofocus>
+      <button class="btn">Buscar</button>
+    </form>
+  </div>
 </div>
 
 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
@@ -32,28 +35,33 @@
           <th>Presupuesto</th>
           <th>Cliente</th>
           <th>Detalle de muebles</th>
-          <th>Modalidad de Entrega</th>
-          <th class="num">Mano de Obra</th>
+          <th>Entrega</th>
+          <th class="num">Mano Obra</th>
           <th class="num">Monto Total</th>
           <th class="num">Seña (50%)</th>
           <th class="num">Saldo Pendiente</th>
           <th>Estado</th>
+          <th style="text-align:center;">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {% for pres in presupuestos %}
           <tr>
-            <td class="mono"><strong>#{{ pres.idPresupuesto|stringformat:"05d" }}</strong><div class="sutil">{{ pres.fechaEmision|date:"d/m/Y" }}</div></td>
+            <td class="mono">
+              <a href="{% url 'core:presupuesto_detalle' pres.idPresupuesto %}">
+                <strong>#{{ pres.idPresupuesto|stringformat:"05d" }}</strong>
+              </a>
+              <div class="sutil">{{ pres.fechaEmision|date:"d/m/Y" }}</div>
+            </td>
             <td>
               <strong>{{ pres.cliente.obtenerNombreCompleto }}</strong>
               <div class="sutil">RUC: {{ pres.cliente.rucCliente }}</div>
             </td>
             <td>
               {% for d in pres.detalles.all %}
-                <div>• {{ d.descripcionMueble }} (Cant: {{ d.cantidad }})</div>
-                <div class="sutil">{{ d.largo }}m × {{ d.ancho }}m × {{ d.alto }}m · {{ d.colorTerminacion|default:"Estándar" }}</div>
+                <div>• {{ d.descripcionMueble }} ({{ d.cantidad }})</div>
               {% empty %}
-                <span class="sutil">Sin muebles desglosados</span>
+                <span class="sutil">Sin muebles</span>
               {% endfor %}
             </td>
             <td>
@@ -64,25 +72,26 @@
                 {% if pres.entrega.modalidadEntrega == 'DOMICILIO' and pres.entrega.costoFlete > 0 %}
                   <div class="sutil">Flete: {{ pres.entrega.costoFlete|guaranies }}</div>
                 {% endif %}
-              {% else %}
-                <span class="sutil">No especificado</span>
               {% endif %}
             </td>
             <td class="num">{{ pres.costoManoObra|guaranies }}</td>
             <td class="num"><strong>{{ pres.montoTotal|guaranies }}</strong></td>
             <td class="num">{{ pres.montoSena|guaranies }}</td>
-            <td class="num">{{ pres.saldoPendiente|guaranies }}</td>
+            <td class="num"><strong {% if pres.saldoPendiente > 0 %}style="color:var(--rojo);"{% endif %}>{{ pres.saldoPendiente|guaranies }}</strong></td>
             <td>
               <span class="etiqueta {% if pres.estadoPresupuesto == 'APROBADO' %}etiqueta-verde{% elif pres.estadoPresupuesto == 'RECHAZADO' %}etiqueta-roja{% else %}etiqueta-ambar{% endif %}">
                 {{ pres.get_estadoPresupuesto_display }}
               </span>
               {% if pres.pedido %}
-                <div class="sutil" style="margin-top:4px;">→ Pedido #{{ pres.pedido.idPedido|stringformat:"04d" }}</div>
+                <div class="sutil" style="margin-top:4px;">PED #{{ pres.pedido.idPedido|stringformat:"04d" }}</div>
               {% endif %}
+            </td>
+            <td style="text-align:center; white-space:nowrap;">
+              <a href="{% url 'core:presupuesto_detalle' pres.idPresupuesto %}" class="btn" style="padding:4px 8px; font-size:12px;">Ver detalle</a>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="9" class="vacio">No se encontraron presupuestos.</td></tr>
+          <tr><td colspan="10" class="vacio">No se encontraron presupuestos.</td></tr>
         {% endfor %}
       </tbody>
     </table>

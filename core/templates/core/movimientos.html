@@ -8,13 +8,32 @@
 <div class="encabezado">
   <div>
     <h1>Movimientos de inventario</h1>
-    <p class="sutil">{{ movimientos|length }} registro{{ movimientos|length|pluralize }} · Trazabilidad de entradas por compra, consumos de taller y desperdicios</p>
+    <p class="sutil">{{ movimientos|length }} registro{{ movimientos|length|pluralize }} · {% if es_empleado %}Consumos de taller y mermas de producción{% else %}Trazabilidad de entradas por compra, consumos de taller y desperdicios{% endif %}</p>
   </div>
-  <form class="buscador" method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por material u observación…" autofocus>
-    <button class="btn">Buscar</button>
-  </form>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <a href="{% url 'core:movimiento_crear' %}" class="btn btn-primario">{% if es_empleado %}+ Registrar Consumo{% else %}+ Registrar Movimiento{% endif %}</a>
+    <form class="buscador" method="get">
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por material u observación…" autofocus>
+      <button class="btn">Buscar</button>
+    </form>
+  </div>
 </div>
+
+{% if es_empleado %}
+  <div class="banner-rol banner-empleado">
+    <span>📋</span>
+    <div>
+      <strong>Movimientos de Taller:</strong> Registro y consulta de salidas por consumo y mermas en órdenes de trabajo (Regla 6).
+    </div>
+  </div>
+{% else %}
+  <div class="banner-rol banner-admin">
+    <span>👑</span>
+    <div>
+      <strong>Historial Integral de Inventario (Administración):</strong> Trazabilidad completa de entradas por compras de proveedores, consumos de taller y ajustes directos.
+    </div>
+  </div>
+{% endif %}
 
 <article class="panel">
   <div class="tabla-scroll">

@@ -78,8 +78,14 @@ WSGI_APPLICATION = 'timbersoft.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'mssql',
+        'NAME': 'TimberSoft',
+        'HOST': 'localhost',
+        'OPTIONS': {
+            'driver': 'ODBC Driver 18 for SQL Server',
+            'trusted_connection': 'yes',
+            'extra_params': 'TrustServerCertificate=yes',
+        },
     }
 }
 
@@ -130,5 +136,10 @@ EMPRESA = {
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+
+# Autenticación y redirecciones
+LOGIN_URL = 'core:login'
+LOGIN_REDIRECT_URL = 'core:dashboard'
+LOGOUT_REDIRECT_URL = 'core:login'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

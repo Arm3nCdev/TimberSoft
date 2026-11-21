@@ -1,0 +1,185 @@
+{% load static %}
+{% load formato_py %}
+<!doctype html>
+<html lang="es-PY">
+<head>
+  <meta charset="utf-8">
+  <title>{{ titulo_reporte }} · TimberSoft</title>
+  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  <style>
+    body { background: #fff; padding: 24px; }
+    .hoja-reporte { max-width: 960px; margin: 0 auto; }
+    .membrete { display: flex; justify-content: space-between; border-bottom: 2px solid #141b2d; padding-bottom: 12px; margin-bottom: 20px; }
+    .botonera-imprimir { position: fixed; bottom: 24px; right: 24px; display: flex; gap: 8px; z-index: 100; }
+  </style>
+</head>
+<body>
+  <div class="botonera-imprimir">
+    <button class="btn btn-primario" onclick="window.print();">🖨️ Imprimir / Guardar en PDF</button>
+    <button class="btn" onclick="window.close();">Cerrar</button>
+  </div>
+
+  <div class="hoja-reporte">
+    <div class="membrete">
+      <div>
+        <h1 style="font-size:22px; margin:0;">{{ empresa.nombre }}</h1>
+        <p class="sutil" style="margin:2px 0;">RUC: {{ empresa.ruc }} · {{ empresa.direccion }} · Tel: {{ empresa.telefono }}</p>
+      </div>
+      <div style="text-align:right;">
+        <h2 style="font-size:16px; margin:0; color:var(--primario);">{{ titulo_reporte }}</h2>
+        <p class="sutil" style="margin:2px 0;">Emisión: {{ hoy|date:"d/m/Y H:i" }}</p>
+      </div>
+    </div>
+
+    {% if tipo == 'pedidos' %}
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Pedido</th>
+            <th>Cliente</th>
+            <th>Mueble / Trabajo</th>
+            <th>Responsable</th>
+            <th>Entrega</th>
+            <th>Estado</th>
+            <th class="num">Total</th>
+            <th class="num">Saldo Pendiente</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in datos %}
+            <tr>
+              <td class="mono">PED #{{ p.idPedido|stringformat:"04d" }}</td>
+              <td>{{ p.presupuesto.cliente.obtenerNombreCompleto }}</td>
+              <td>{{ p.descripcion }}</td>
+              <td>{{ p.responsable.username }}</td>
+              <td>{{ p.fechaEntregaEstimada|date:"d/m/Y" }}</td>
+              <td>{{ p.get_estadoPedido_display }}</td>
+              <td class="num">{{ p.total|guaranies }}</td>
+              <td class="num">{{ p.saldo|guaranies }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% elif tipo == 'presupuestos' %}
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Presupuesto</th>
+            <th>Cliente</th>
+            <th>Fecha</th>
+            <th>Modalidad Entrega</th>
+            <th class="num">Mano Obra</th>
+            <th class="num">Monto Total</th>
+            <th class="num">Seña (50%)</th>
+            <th class="num">Saldo Pendiente</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pres in datos %}
+            <tr>
+              <td class="mono">#{{ pres.idPresupuesto|stringformat:"05d" }}</td>
+              <td>{{ pres.cliente.obtenerNombreCompleto }}</td>
+              <td>{{ pres.fechaEmision|date:"d/m/Y" }}</td>
+              <td>{{ pres.entrega.get_modalidadEntrega_display }}</td>
+              <td class="num">{{ pres.costoManoObra|guaranies }}</td>
+              <td class="num"><strong>{{ pres.montoTotal|guaranies }}</strong></td>
+              <td class="num">{{ pres.montoSena|guaranies }}</td>
+              <td class="num">{{ pres.saldoPendiente|guaranies }}</td>
+              <td>{{ pres.get_estadoPresupuesto_display }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% elif tipo == 'inventario' %}
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Material</th>
+            <th>Unidad</th>
+            <th class="num">Costo Unitario</th>
+            <th class="num">Stock Actual</th>
+            <th class="num">Stock Mínimo</th>
+            <th>Estado</th>
+            <th class="num">Valoración</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in datos %}
+            <tr>
+              <td class="mono">{{ m.codigo }}</td>
+              <td>{{ m.nombreMaterial }}</td>
+              <td>{{ m.get_unidadMedida_display }}</td>
+              <td class="num">{{ m.precioCosto|guaranies }}</td>
+              <td class="num">{{ m.stockActual|cantidad }} {{ m.unidadMedida }}</td>
+              <td class="num">{{ m.stockMinimo|cantidad }}</td>
+              <td>{% if m.esStockCritico %}⚠️ CRÍTICO{% else %}Normal{% endif %}</td>
+              <td class="num">{{ m.valor_stock|guaranies }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% elif tipo == 'caja' %}
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Responsable Cierre</th>
+            <th class="num">Ingresos Diarios</th>
+            <th class="num">Egresos Diarios</th>
+            <th class="num">Balance Neto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in datos %}
+            <tr>
+              <td class="mono">{{ c.fechaCierre|date:"d/m/Y" }}</td>
+              <td>{{ c.usuario.username }}</td>
+              <td class="num">{{ c.totalIngresos|guaranies }}</td>
+              <td class="num">{{ c.totalEgresos|guaranies }}</td>
+              <td class="num"><strong>{{ c.balanceNeto|guaranies }}</strong></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    {% elif tipo == 'clientes' %}
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>RUC</th>
+            <th>CI</th>
+            <th>Teléfono</th>
+            <th>Dirección</th>
+            <th class="num">Presupuestos</th>
+            <th class="num">Pedidos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cli in datos %}
+            <tr>
+              <td>{{ cli.obtenerNombreCompleto }}</td>
+              <td class="mono">{{ cli.rucCliente }}</td>
+              <td class="mono">{{ cli.ci }}</td>
+              <td>{{ cli.telefono }}</td>
+              <td>{{ cli.direccion }}</td>
+              <td class="num">{{ cli.consultarPresupuestos|length }}</td>
+              <td class="num">{{ cli.consultarHistorialPedidos|length }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <div style="margin-top: 40px; border-top: 1px solid #ccc; padding-top: 12px; font-size: 12px; display: flex; justify-content: space-between;">
+      <span>Emitido por: {{ request.user.username }} ({{ request.user.get_rol_display|default:"Sistema" }})</span>
+      <span>TimberSoft · Carpintería Fabmag</span>
+    </div>
+  </div>
+</body>
+</html>

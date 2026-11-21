@@ -127,7 +127,6 @@ class Persona(models.Model):
 
 
 class Cliente(Persona):
-    """Cliente del taller. Hereda idPersona de Persona."""
     rucCliente = models.CharField('RUC / CI del Cliente', max_length=20, unique=True)
     fechaRegistro = models.DateField('Fecha de registro', default=timezone.localdate)
 
@@ -180,7 +179,6 @@ class UsuarioManager(BaseUserManager):
 
 
 class Usuario(Persona, AbstractBaseUser, PermissionsMixin):
-    """Usuario del sistema. Hereda idPersona de Persona."""
     username = models.CharField('Usuario', max_length=50, unique=True)
     rol = models.CharField('Rol', max_length=20, choices=RolEnum.choices, default=RolEnum.EMPLEADO)
     activo = models.BooleanField('Activo', default=True)

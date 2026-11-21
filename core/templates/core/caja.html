@@ -7,8 +7,14 @@
 {% block contenido %}
 <div class="encabezado">
   <div>
-    <h1>Caja y control financiero</h1>
-    <p class="sutil">{{ hoy|date:"l j \d\e F \d\e Y" }} · Regla 10: Las compras se registran con Compra y PagoProveedor, no como GastoOperativo</p>
+    <h1>Caja y control financiero diario</h1>
+    <p class="sutil">{{ hoy|date:"l j \d\e F \d\e Y" }} · Regla 10: Las compras se computan mediante Compra y PagoProveedor para evitar doble conteo</p>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <a href="{% url 'core:gasto_crear' %}" class="btn">+ Registrar Gasto</a>
+    <a href="{% url 'core:caja_cerrar' %}" class="btn btn-primario" onclick="return confirm('¿Confirmar el Cierre de Caja para la fecha de hoy?');">
+      🔒 Realizar Cierre de Caja del Día
+    </a>
   </div>
 </div>
 
@@ -16,17 +22,30 @@
   <article class="kpi">
     <span class="kpi-etiqueta">Ingresos del día (Pagos de clientes)</span>
     <strong class="kpi-valor" style="color:var(--verde);">{{ total_ingresos|guaranies }}</strong>
-    <span class="kpi-nota">{{ pagos_hoy|length }} cobro{{ pagos_hoy|length|pluralize }} hoy</span>
+    <span class="kpi-nota">{{ pagos_hoy|length }} cobro{{ pagos_hoy|length|pluralize }} registrados hoy</span>
   </article>
   <article class="kpi">
     <span class="kpi-etiqueta">Egresos del día (Gastos + Proveedores)</span>
     <strong class="kpi-valor" style="color:var(--rojo);">{{ total_egresos|guaranies }}</strong>
-    <span class="kpi-nota">Gastos operativos y pagos de compras</span>
+    <span class="kpi-nota">Gastos de taller y pagos de compras</span>
   </article>
   <article class="kpi">
     <span class="kpi-etiqueta">Balance neto del día</span>
-    <strong class="kpi-valor" {% if balance_neto < 0 %}style="color:var(--rojo);"{% endif %}>{{ balance_neto|guaranies }}</strong>
+    <strong class="kpi-valor" {% if balance_neto < 0 %}style="color:var(--rojo);"{% else %}style="color:var(--primario);"{% endif %}>
+      {{ balance_neto|guaranies }}
+    </strong>
     <span class="kpi-nota">Ingresos menos egresos</span>
+  </article>
+  <article class="kpi">
+    <span class="kpi-etiqueta">Estado de cierre hoy</span>
+    <strong class="kpi-valor">
+      {% if cierre_hoy %}
+        <span class="etiqueta etiqueta-verde">Cerrado por {{ cierre_hoy.usuario.username }}</span>
+      {% else %}
+        <span class="etiqueta etiqueta-ambar">Pendiente de cierre</span>
+      {% endif %}
+    </strong>
+    <span class="kpi-nota">{{ hoy|date:"d/m/Y" }}</span>
   </article>
 </section>
 

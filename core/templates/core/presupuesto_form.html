@@ -1,0 +1,116 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}Nuevo Presupuesto{% endblock %}
+{% block migas %}Ventas y Trabajos / <a href="{% url 'core:presupuestos' %}">Presupuestos</a> / <strong>Nuevo</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Nuevo Presupuesto</h1>
+    <p class="sutil">Costeo con muebles requeridos, mano de obra, modalidad de entrega y cálculo automático del 50% de seña</p>
+  </div>
+  <a href="{% url 'core:presupuestos' %}" class="btn">← Volver al listado</a>
+</div>
+
+<article class="panel" style="max-width: 900px; margin: 0 auto;">
+  <form method="post" class="formulario">
+    {% csrf_token %}
+
+    <h2 style="font-size:16px; border-bottom:1px solid var(--borde); padding-bottom:8px; margin-top:0;">1. Datos generales del presupuesto</h2>
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ pres_form.cliente.id_for_label }}">Cliente *</label>
+        {{ pres_form.cliente }}
+        {% if pres_form.cliente.errors %}<div class="campo-error">{{ pres_form.cliente.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ pres_form.fechaEmision.id_for_label }}">Fecha de emisión *</label>
+        {{ pres_form.fechaEmision }}
+        {% if pres_form.fechaEmision.errors %}<div class="campo-error">{{ pres_form.fechaEmision.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ pres_form.costoManoObra.id_for_label }}">Costo de mano de obra (₲) *</label>
+        {{ pres_form.costoManoObra }}
+        {% if pres_form.costoManoObra.errors %}<div class="campo-error">{{ pres_form.costoManoObra.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <h2 style="font-size:16px; border-bottom:1px solid var(--borde); padding-bottom:8px; margin-top:16px;">2. Modalidad de entrega y flete (Regla 2)</h2>
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ entrega_form.modalidadEntrega.id_for_label }}">Modalidad de entrega *</label>
+        {{ entrega_form.modalidadEntrega }}
+        {% if entrega_form.modalidadEntrega.errors %}<div class="campo-error">{{ entrega_form.modalidadEntrega.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ entrega_form.costoFlete.id_for_label }}">Costo de flete (₲)</label>
+        {{ entrega_form.costoFlete }}
+        <span class="sutil">Solo se suma al total si es entrega a DOMICILIO</span>
+      </div>
+
+      <div class="campo">
+        <label for="{{ entrega_form.direccionEntrega.id_for_label }}">Dirección de entrega</label>
+        {{ entrega_form.direccionEntrega }}
+      </div>
+    </div>
+
+    <h2 style="font-size:16px; border-bottom:1px solid var(--borde); padding-bottom:8px; margin-top:16px;">3. Detalle del mueble a fabricar (Regla 1)</h2>
+    <div class="grilla-campos">
+      <div class="campo" style="grid-column: 1 / -1;">
+        <label for="{{ det_form.descripcionMueble.id_for_label }}">Descripción del mueble / trabajo *</label>
+        {{ det_form.descripcionMueble }}
+        {% if det_form.descripcionMueble.errors %}<div class="campo-error">{{ det_form.descripcionMueble.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ det_form.largo.id_for_label }}">Largo (m)</label>
+        {{ det_form.largo }}
+      </div>
+      <div class="campo">
+        <label for="{{ det_form.ancho.id_for_label }}">Ancho (m)</label>
+        {{ det_form.ancho }}
+      </div>
+      <div class="campo">
+        <label for="{{ det_form.alto.id_for_label }}">Alto (m)</label>
+        {{ det_form.alto }}
+      </div>
+      <div class="campo">
+        <label for="{{ det_form.colorTerminacion.id_for_label }}">Color / Terminación</label>
+        {{ det_form.colorTerminacion }}
+      </div>
+    </div>
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ det_form.cantidad.id_for_label }}">Cantidad de unidades *</label>
+        {{ det_form.cantidad }}
+      </div>
+      <div class="campo">
+        <label for="{{ det_form.margen.id_for_label }}">Margen / ganancia adicional (₲)</label>
+        {{ det_form.margen }}
+      </div>
+    </div>
+
+    <div class="grilla-campos" style="background:var(--fondo); padding:12px; border-radius:8px;">
+      <div class="campo">
+        <label for="{{ det_form.material.id_for_label }}">Material requerido principal</label>
+        {{ det_form.material }}
+      </div>
+      <div class="campo">
+        <label for="{{ det_form.cantidad_material.id_for_label }}">Cantidad de material requerida</label>
+        {{ det_form.cantidad_material }}
+      </div>
+    </div>
+
+    <div class="acciones-form">
+      <a href="{% url 'core:presupuestos' %}" class="btn">Cancelar</a>
+      <button type="submit" class="btn btn-primario">Generar presupuesto</button>
+    </div>
+  </form>
+</article>
+{% endblock %}

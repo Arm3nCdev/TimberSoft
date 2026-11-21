@@ -1,0 +1,45 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}Registrar Gasto Operativo{% endblock %}
+{% block migas %}Caja y Finanzas / <a href="{% url 'core:caja' %}">Caja</a> / <strong>Nuevo Gasto</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Registrar Gasto Operativo</h1>
+    <p class="sutil">Regla 10: Las compras de materiales se registran como Compra, no como GastoOperativo, para evitar doble conteo en caja.</p>
+  </div>
+  <a href="{% url 'core:caja' %}" class="btn">← Volver a Caja</a>
+</div>
+
+<article class="panel" style="max-width: 650px; margin: 0 auto;">
+  <form method="post" class="formulario">
+    {% csrf_token %}
+
+    <div class="campo">
+      <label for="{{ form.conceptoGasto.id_for_label }}">Concepto del gasto *</label>
+      {{ form.conceptoGasto }}
+      {% if form.conceptoGasto.errors %}<div class="campo-error">{{ form.conceptoGasto.errors }}</div>{% endif %}
+    </div>
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ form.montoGasto.id_for_label }}">Monto (₲) *</label>
+        {{ form.montoGasto }}
+        {% if form.montoGasto.errors %}<div class="campo-error">{{ form.montoGasto.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.comprobanteRef.id_for_label }}">Comprobante de referencia</label>
+        {{ form.comprobanteRef }}
+        {% if form.comprobanteRef.errors %}<div class="campo-error">{{ form.comprobanteRef.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="acciones-form">
+      <a href="{% url 'core:caja' %}" class="btn">Cancelar</a>
+      <button type="submit" class="btn btn-primario">Registrar Gasto</button>
+    </div>
+  </form>
+</article>
+{% endblock %}

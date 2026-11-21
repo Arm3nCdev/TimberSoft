@@ -7,10 +7,10 @@
 {% block contenido %}
 <div class="encabezado">
   <div>
-    <h1>Pedidos de producción</h1>
+    <h1>{% if es_empleado %}Mis pedidos de producción{% else %}Pedidos de producción (General){% endif %}</h1>
     <p class="sutil">
       {{ pedidos|length }} pedido{{ pedidos|length|pluralize }} en lista
-      {% if filtro_usuario %} · Mostrando únicamente pedidos asignados a: <strong>{{ filtro_usuario }}</strong> (Regla 11){% endif %}
+      {% if es_empleado %} · Mostrando únicamente pedidos asignados a: <strong>{{ request.user.username }}</strong> (Regla 11){% else %} · Visualización completa de todos los pedidos del taller{% endif %}
     </p>
   </div>
   <form class="buscador" method="get">
@@ -19,6 +19,22 @@
     <button class="btn">Buscar</button>
   </form>
 </div>
+
+{% if es_empleado %}
+  <div class="banner-rol banner-empleado">
+    <span>🔧</span>
+    <div>
+      <strong>Regla 11 — Panel Operativo de Pedidos Asignados:</strong> Como operario de taller, visualizas y actualizas únicamente los pedidos de fabricación asignados a tu usuario (<strong>{{ request.user.username }}</strong>).
+    </div>
+  </div>
+{% else %}
+  <div class="banner-rol banner-admin">
+    <span>👑</span>
+    <div>
+      <strong>Vista General de Administración:</strong> Supervisión de todas las órdenes de trabajo del taller, todos los responsables y seguimiento integral de entregas y cobranzas.
+    </div>
+  </div>
+{% endif %}
 
 <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
   <a class="btn {% if not estado_seleccionado %}btn-primario{% endif %}" href="{% url 'core:pedidos' %}">Todos</a>
@@ -38,9 +54,9 @@
           <th>Responsable</th>
           <th>Recepción</th>
           <th>Entrega Estimada</th>
-          <th>Estado</th>
-          <th class="num">Total</th>
-          <th class="num">Saldo Pendiente</th>
+          <th>Estado Actual</th>
+          {% if not es_empleado %}<th class="num">Saldo Pendiente</th>{% else %}<th style="text-align:center;">Cobranza</th>{% endif %}
+          <th style="text-align:center;">Cambiar Estado</th>
         </tr>
       </thead>
       <tbody>
@@ -55,7 +71,13 @@
               {{ p.descripcion }}
               <div class="sutil">{{ p.presupuesto.detalles.first.colorTerminacion|default:"Acabado estándar" }}</div>
             </td>
-            <td>{{ p.responsable.username }}</td>
+            <td>
+              {% if es_empleado %}
+                <span class="badge-rol badge-empleado">Asignado a mí</span>
+              {% else %}
+                <strong>{{ p.responsable.username }}</strong>
+              {% endif %}
+            </td>
             <td>{{ p.fechaRecepcion|date:"d/m/Y" }}</td>
             <td>
               {{ p.fechaEntregaEstimada|date:"d/m/Y" }}
@@ -68,9 +90,25 @@
                 {{ p.get_estadoPedido_display }}
               </span>
             </td>
-            <td class="num">{{ p.total|guaranies }}</td>
-            <td class="num">
-              <strong {% if p.saldo > 0 %}style="color:var(--rojo);"{% endif %}>{{ p.saldo|guaranies }}</strong>
+            {% if not es_empleado %}
+              <td class="num">
+                <strong {% if p.saldo > 0 %}style="color:var(--rojo);"{% endif %}>{{ p.saldo|guaranies }}</strong>
+              </td>
+            {% else %}
+              <td style="text-align:center;">
+                <span class="etiqueta etiqueta-azul">Admin</span>
+              </td>
+            {% endif %}
+            <td style="text-align:center; white-space:nowrap;">
+              <form method="post" action="{% url 'core:pedido_actualizar_estado' p.idPedido %}" style="display:inline-flex; gap:4px; align-items:center;">
+                {% csrf_token %}
+                <select name="nuevo_estado" class="campo-input" style="padding:4px 6px; font-size:12px; width:auto;">
+                  {% for val, lab in estados %}
+                    <option value="{{ val }}" {% if p.estadoPedido == val %}selected{% endif %}>{{ lab }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn" style="padding:4px 8px; font-size:12px;">Actualizar</button>
+              </form>
             </td>
           </tr>
         {% empty %}

@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}Ajustar Stock{% endblock %}
+{% block migas %}Materiales / <a href="{% url 'core:materiales' %}">Inventario</a> / <strong>Ajustar Stock</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>Registrar movimiento de stock</h1>
+    <p class="sutil">Regla 6: El stock nunca puede quedar negativo ante salidas o desperdicios</p>
+  </div>
+  <a href="{% url 'core:materiales' %}" class="btn">← Volver al inventario</a>
+</div>
+
+<article class="panel" style="max-width: 700px; margin: 0 auto;">
+  <form method="post" class="formulario">
+    {% csrf_token %}
+
+    <div class="campo">
+      <label for="{{ form.material.id_for_label }}">Material a ajustar *</label>
+      {{ form.material }}
+      {% if form.material.errors %}<div class="campo-error">{{ form.material.errors }}</div>{% endif %}
+    </div>
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ form.tipoMovimiento.id_for_label }}">Tipo de movimiento *</label>
+        {{ form.tipoMovimiento }}
+        {% if form.tipoMovimiento.errors %}<div class="campo-error">{{ form.tipoMovimiento.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.cantidadMovimiento.id_for_label }}">Cantidad *</label>
+        {{ form.cantidadMovimiento }}
+        {% if form.cantidadMovimiento.errors %}<div class="campo-error">{{ form.cantidadMovimiento.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="campo">
+      <label for="{{ form.motivoObservacion.id_for_label }}">Motivo u observación</label>
+      {{ form.motivoObservacion }}
+      {% if form.motivoObservacion.errors %}<div class="campo-error">{{ form.motivoObservacion.errors }}</div>{% endif %}
+    </div>
+
+    <div class="acciones-form">
+      <a href="{% url 'core:materiales' %}" class="btn">Cancelar</a>
+      <button type="submit" class="btn btn-primario">Registrar movimiento</button>
+    </div>
+  </form>
+</article>
+{% endblock %}

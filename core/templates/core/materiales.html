@@ -1,46 +1,93 @@
 {% extends 'core/base.html' %}
 {% load formato_py %}
 
-{% block titulo %}Materiales{% endblock %}
-{% block migas %}Materiales / <strong>{% if solo_bajo %}Stock bajo / crítico{% else %}Todos los materiales{% endif %}</strong>{% endblock %}
+{% block titulo %}Materiales e Inventario{% endblock %}
+{% block migas %}Materiales / <strong>{% if solo_bajo %}Stock crítico{% else %}Inventario de materiales{% endif %}</strong>{% endblock %}
 
 {% block contenido %}
 <div class="encabezado">
   <div>
-    <h1>{% if solo_bajo %}Materiales con stock crítico{% else %}Materiales{% endif %}</h1>
-    <p class="sutil">{{ materiales|length }} material{{ materiales|length|pluralize:"es" }} · Control de existencias y costos unitarios</p>
+    <h1>{% if solo_bajo %}Materiales con stock crítico (bajo mínimo){% else %}Inventario de materiales e insumos{% endif %}</h1>
+    <p class="sutil">
+      {{ materiales|length }} material{{ materiales|length|pluralize:"es" }} · {% if es_empleado %}Control de disponibilidad física para taller{% else %}Control de existencias y costos unitarios{% endif %}
+      {% if solo_bajo %}<span class="etiqueta etiqueta-roja" style="margin-left:6px;">Filtro: Stock Crítico</span>{% endif %}
+    </p>
   </div>
-  <form class="buscador" method="get">
-    {% if solo_bajo %}<input type="hidden" name="stock" value="bajo">{% endif %}
-    <input type="search" name="q" value="{{ q }}" placeholder="Buscar por código o nombre…" autofocus>
-    <button class="btn">Buscar</button>
-  </form>
+  <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    {% if es_empleado %}
+      <a href="{% url 'core:movimiento_crear' %}" class="btn btn-primario">+ Registrar Consumo</a>
+    {% else %}
+      <a href="{% url 'core:movimiento_crear' %}" class="btn btn-primario">+ Registrar Movimiento</a>
+    {% endif %}
+    {% if solo_bajo %}
+      <a href="{% url 'core:materiales' %}" class="btn">Ver todos</a>
+    {% else %}
+      <a href="{% url 'core:materiales' %}?stock=bajo" class="btn" style="color:var(--rojo);">Ver solo stock crítico</a>
+    {% endif %}
+    <form class="buscador" method="get">
+      {% if solo_bajo %}<input type="hidden" name="stock" value="bajo">{% endif %}
+      <input type="search" name="q" value="{{ q }}" placeholder="Buscar por código o nombre…" autofocus>
+      <button class="btn">Buscar</button>
+    </form>
+  </div>
 </div>
+
+{% if es_empleado %}
+  <div class="banner-rol banner-empleado">
+    <span>🪵</span>
+    <div>
+      <strong>Panel de Taller — Existencias Físicas:</strong> Consulta de materiales disponibles y aviso de stock crítico (Regla 6). Los costos de compra y valorización económica son confidenciales de Administración.
+    </div>
+  </div>
+{% else %}
+  <div class="banner-rol banner-admin">
+    <span>👑</span>
+    <div>
+      <strong>Gestión Integral de Inventario (Administración):</strong> Control de stock, costos unitarios de adquisición y valorización económica patrimonial.
+    </div>
+  </div>
+{% endif %}
 
 <article class="panel">
   <div class="tabla-scroll">
     <table class="tabla">
       <thead>
         <tr>
-          <th>Código</th><th>Material</th><th>Unidad</th>
-          <th class="num">Costo unitario</th><th class="num">Stock actual</th><th class="num">Mínimo</th><th class="num">Valor en stock</th>
+          <th>Código</th>
+          <th>Material</th>
+          <th>Unidad</th>
+          {% if not es_empleado %}<th class="num">Costo unitario</th>{% endif %}
+          <th class="num">Stock actual</th>
+          <th class="num">Mínimo</th>
+          <th>Estado de Stock</th>
+          {% if not es_empleado %}<th class="num">Valor en stock</th>{% endif %}
         </tr>
       </thead>
       <tbody>
         {% for m in materiales %}
           <tr>
-            <td class="mono">{{ m.codigo }}</td>
-            <td><strong>{{ m.nombreMaterial }}</strong>{% if m.categoria %}<div class="sutil">{{ m.categoria }}</div>{% endif %}</td>
+            <td class="mono"><strong>{{ m.codigo }}</strong></td>
+            <td>
+              <strong>{{ m.nombreMaterial }}</strong>
+              {% if m.categoria %}<div class="sutil">{{ m.categoria }}</div>{% endif %}
+            </td>
             <td>{{ m.get_unidadMedida_display }}</td>
-            <td class="num">{{ m.precioCosto|guaranies }}</td>
+            {% if not es_empleado %}<td class="num">{{ m.precioCosto|guaranies }}</td>{% endif %}
             <td class="num">
-              <span class="etiqueta {% if m.esStockCritico %}etiqueta-roja{% else %}etiqueta-verde{% endif %}">{{ m.stockActual|cantidad }} {{ m.unidadMedida }}</span>
+              <strong>{{ m.stockActual|cantidad }} {{ m.unidadMedida }}</strong>
             </td>
             <td class="num">{{ m.stockMinimo|cantidad }}</td>
-            <td class="num">{{ m.valor_stock|guaranies }}</td>
+            <td>
+              {% if m.esStockCritico %}
+                <span class="etiqueta etiqueta-roja">⚠️ Stock Crítico</span>
+              {% else %}
+                <span class="etiqueta etiqueta-verde">✓ Normal</span>
+              {% endif %}
+            </td>
+            {% if not es_empleado %}<td class="num">{{ m.valor_stock|guaranies }}</td>{% endif %}
           </tr>
         {% empty %}
-          <tr><td colspan="7" class="vacio">No se encontraron materiales{% if q %} para «{{ q }}»{% endif %}.</td></tr>
+          <tr><td colspan="{% if es_empleado %}6{% else %}8{% endif %}" class="vacio">No se encontraron materiales{% if q %} para «{{ q }}»{% endif %}.</td></tr>
         {% endfor %}
       </tbody>
     </table>

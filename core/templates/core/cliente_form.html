@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+
+{% block titulo %}{% if es_edicion %}Editar Cliente{% else %}Nuevo Cliente{% endif %}{% endblock %}
+{% block migas %}Clientes / <a href="{% url 'core:clientes' %}">Listado</a> / <strong>{% if es_edicion %}Editar{% else %}Nuevo{% endif %}</strong>{% endblock %}
+
+{% block contenido %}
+<div class="encabezado">
+  <div>
+    <h1>{% if es_edicion %}Editar datos de cliente{% else %}Registrar nuevo cliente{% endif %}</h1>
+    <p class="sutil">Herencia de atributos Persona (nombre, apellido, CI, teléfono, dirección) y Cliente (RUC)</p>
+  </div>
+  <a href="{% url 'core:clientes' %}" class="btn">← Volver al listado</a>
+</div>
+
+<article class="panel" style="max-width: 800px; margin: 0 auto;">
+  <form method="post" class="formulario">
+    {% csrf_token %}
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ form.nombre.id_for_label }}">Nombre *</label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}<div class="campo-error">{{ form.nombre.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.apellido.id_for_label }}">Apellido *</label>
+        {{ form.apellido }}
+        {% if form.apellido.errors %}<div class="campo-error">{{ form.apellido.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ form.ci.id_for_label }}">Cédula de Identidad (C.I.) *</label>
+        {{ form.ci }}
+        {% if form.ci.errors %}<div class="campo-error">{{ form.ci.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.rucCliente.id_for_label }}">RUC del Cliente *</label>
+        {{ form.rucCliente }}
+        {% if form.rucCliente.errors %}<div class="campo-error">{{ form.rucCliente.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="grilla-campos">
+      <div class="campo">
+        <label for="{{ form.telefono.id_for_label }}">Teléfono / Celular</label>
+        {{ form.telefono }}
+        {% if form.telefono.errors %}<div class="campo-error">{{ form.telefono.errors }}</div>{% endif %}
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.direccion.id_for_label }}">Dirección / Ciudad</label>
+        {{ form.direccion }}
+        {% if form.direccion.errors %}<div class="campo-error">{{ form.direccion.errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="acciones-form">
+      <a href="{% url 'core:clientes' %}" class="btn">Cancelar</a>
+      <button type="submit" class="btn btn-primario">
+        {% if es_edicion %}Guardar cambios{% else %}Registrar cliente{% endif %}
+      </button>
+    </div>
+  </form>
+</article>
+{% endblock %}
