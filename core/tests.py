@@ -1,7 +1,13 @@
 from decimal import Decimal
-from django.test import TestCase
+from io import BytesIO
+from tempfile import TemporaryDirectory
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from PIL import Image
 
 from core.models import (
     Usuario,
@@ -255,3 +261,78 @@ class ReglasDeNegocioTestCase(TestCase):
         self.assertEqual(self.empleado.obtenerPedidosAsignados()[0], ped_empleado)
         self.assertTrue(self.admin.validarPermiso('gestionar_compras'))
         self.assertFalse(self.empleado.validarPermiso('gestionar_compras'))
+
+
+class CargaImagenMuebleTestCase(TestCase):
+    def setUp(self):
+        self.cliente = Cliente.objects.create(
+            nombre='Ana',
+            apellido='García',
+            ci='5555',
+            rucCliente='5555-1',
+            telefono='0982000000'
+        )
+        self.presupuesto = Presupuesto.objects.create(cliente=self.cliente)
+        self.detalle = DetallePresupuesto.objects.create(
+            presupuesto=self.presupuesto,
+            descripcionMueble='Mesa de cedro',
+            cantidad=1
+        )
+        self.url = reverse('core:subir_imagen_mueble', args=[self.detalle.pk])
+        self.url_presupuestos = reverse('core:presupuestos')
+
+        self.directorio_media = TemporaryDirectory()
+        self.addCleanup(self.directorio_media.cleanup)
+        self.override_media = override_settings(MEDIA_ROOT=self.directorio_media.name)
+        self.override_media.enable()
+        self.addCleanup(self.override_media.disable)
+
+    def crear_imagen(self, tamano=None):
+        buffer = BytesIO()
+        Image.new('RGB', (2, 2), color='blue').save(buffer, format='PNG')
+        contenido = buffer.getvalue()
+        if tamano is not None:
+            contenido += b'\0' * (tamano - len(contenido))
+        return SimpleUploadedFile('mueble.png', contenido, content_type='image/png')
+
+    def test_carga_imagen_valida_y_la_muestra_en_presupuestos(self):
+        respuesta = self.client.post(self.url, {'imagen': self.crear_imagen()})
+
+        self.assertRedirects(respuesta, self.url_presupuestos, fetch_redirect_response=False)
+        self.detalle.refresh_from_db()
+        self.assertTrue(self.detalle.imagen)
+        self.assertTrue(self.detalle.imagen.storage.exists(self.detalle.imagen.name))
+
+        respuesta = self.client.get(self.url_presupuestos)
+        self.assertContains(respuesta, self.detalle.imagen.url)
+        self.assertContains(respuesta, 'Reemplazar imagen')
+
+    def test_acepta_imagen_de_exactamente_5_mb(self):
+        respuesta = self.client.post(self.url, {'imagen': self.crear_imagen(5 * 1024 * 1024)})
+
+        self.assertRedirects(respuesta, self.url_presupuestos, fetch_redirect_response=False)
+        self.detalle.refresh_from_db()
+        self.assertTrue(self.detalle.imagen)
+
+    def test_rechaza_imagen_mayor_de_5_mb(self):
+        respuesta = self.client.post(self.url, {'imagen': self.crear_imagen(5 * 1024 * 1024 + 1)})
+
+        self.assertRedirects(respuesta, self.url_presupuestos, fetch_redirect_response=False)
+        self.detalle.refresh_from_db()
+        self.assertFalse(self.detalle.imagen)
+
+        respuesta = self.client.get(self.url_presupuestos)
+        self.assertContains(respuesta, 'No se pudo cargar la imagen')
+        self.assertContains(respuesta, '5 MB')
+
+    def test_rechaza_archivo_que_no_es_imagen(self):
+        archivo = SimpleUploadedFile('archivo.txt', b'no es una imagen', content_type='text/plain')
+        respuesta = self.client.post(self.url, {'imagen': archivo})
+
+        self.assertRedirects(respuesta, self.url_presupuestos, fetch_redirect_response=False)
+        self.detalle.refresh_from_db()
+        self.assertFalse(self.detalle.imagen)
+
+    def test_no_permite_cargar_imagen_por_get(self):
+        respuesta = self.client.get(self.url)
+        self.assertEqual(respuesta.status_code, 405)

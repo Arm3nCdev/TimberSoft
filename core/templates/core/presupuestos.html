@@ -5,6 +5,10 @@
 {% block migas %}Ventas y Trabajos / <strong>Presupuestos</strong>{% endblock %}
 
 {% block contenido %}
+{% for message in messages %}
+  <div class="mensaje mensaje-{{ message.tags }}">{{ message }}</div>
+{% endfor %}
+
 <div class="encabezado">
   <div>
     <h1>Presupuestos de clientes</h1>
@@ -17,7 +21,7 @@
   </form>
 </div>
 
-<div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+<div class="filtros-estado">
   <a class="btn {% if not estado_seleccionado %}btn-primario{% endif %}" href="{% url 'core:presupuestos' %}">Todos</a>
   {% for valor, etiqueta in estados %}
     <a class="btn {% if estado_seleccionado == valor %}btn-primario{% endif %}" href="{% url 'core:presupuestos' %}?estado={{ valor }}">{{ etiqueta }}</a>
@@ -50,8 +54,23 @@
             </td>
             <td>
               {% for d in pres.detalles.all %}
-                <div>• {{ d.descripcionMueble }} (Cant: {{ d.cantidad }})</div>
-                <div class="sutil">{{ d.largo }}m × {{ d.ancho }}m × {{ d.alto }}m · {{ d.colorTerminacion|default:"Estándar" }}</div>
+                <div class="mueble-item">
+                  {% if d.imagen %}
+                    <a class="mueble-imagen" href="{{ d.imagen.url }}" target="_blank" rel="noopener">
+                      <img src="{{ d.imagen.url }}" alt="Imagen de {{ d.descripcionMueble }}">
+                    </a>
+                  {% endif %}
+                  <div class="mueble-info">
+                    <strong>{{ d.descripcionMueble }}</strong> (Cant: {{ d.cantidad }})
+                    <div class="sutil">{{ d.largo }}m × {{ d.ancho }}m × {{ d.alto }}m · {{ d.colorTerminacion|default:"Estándar" }}</div>
+                    <form class="form-imagen-mueble" method="post" action="{% url 'core:subir_imagen_mueble' d.pk %}" enctype="multipart/form-data">
+                      {% csrf_token %}
+                      <input class="input-imagen-mueble" type="file" name="imagen" accept="image/*" required aria-label="Imagen para {{ d.descripcionMueble }}">
+                      <button class="btn btn-primario" type="submit">{% if d.imagen %}Reemplazar imagen{% else %}Agregar imagen{% endif %}</button>
+                    </form>
+                    <div class="sutil">Máximo 5 MB por imagen.</div>
+                  </div>
+                </div>
               {% empty %}
                 <span class="sutil">Sin muebles desglosados</span>
               {% endfor %}

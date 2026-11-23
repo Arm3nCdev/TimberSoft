@@ -7,6 +7,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 
+TAMANO_MAXIMO_IMAGEN = 5 * 1024 * 1024
+
+
+def validar_tamano_imagen(imagen):
+    if imagen.size > TAMANO_MAXIMO_IMAGEN:
+        raise ValidationError('La imagen no puede superar los 5 MB.')
+
+
 # ==============================================================================
 # 2. ENUMERACIONES
 # ==============================================================================
@@ -498,6 +506,13 @@ class DetallePresupuesto(models.Model):
     idDetalle = models.AutoField(primary_key=True)
     presupuesto = models.ForeignKey(Presupuesto, on_delete=models.CASCADE, related_name='detalles')
     descripcionMueble = models.CharField('Descripción del mueble', max_length=200)
+    imagen = models.ImageField(
+        'Imagen del mueble',
+        upload_to='muebles/',
+        null=True,
+        blank=True,
+        validators=[validar_tamano_imagen],
+    )
     largo = models.DecimalField('Largo (m)', max_digits=8, decimal_places=2, default=Decimal('0.00'))
     ancho = models.DecimalField('Ancho (m)', max_digits=8, decimal_places=2, default=Decimal('0.00'))
     alto = models.DecimalField('Alto (m)', max_digits=8, decimal_places=2, default=Decimal('0.00'))
