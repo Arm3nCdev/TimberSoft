@@ -68,6 +68,12 @@
                       <input class="input-imagen-mueble" type="file" name="imagen" accept="image/*" required aria-label="Imagen para {{ d.descripcionMueble }}">
                       <button class="btn btn-primario" type="submit">{% if d.imagen %}Reemplazar imagen{% else %}Agregar imagen{% endif %}</button>
                     </form>
+                    {% if d.imagen %}
+                      <form class="form-imagen-mueble" method="post" action="{% url 'core:eliminar_imagen_mueble' d.pk %}" onsubmit="return confirm('¿Eliminar la imagen de este mueble?')">
+                        {% csrf_token %}
+                        <button class="btn btn-eliminar" type="submit">Eliminar imagen</button>
+                      </form>
+                    {% endif %}
                     <div class="sutil">Máximo 5 MB por imagen.</div>
                   </div>
                 </div>

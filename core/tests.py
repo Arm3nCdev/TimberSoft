@@ -336,3 +336,35 @@ class CargaImagenMuebleTestCase(TestCase):
     def test_no_permite_cargar_imagen_por_get(self):
         respuesta = self.client.get(self.url)
         self.assertEqual(respuesta.status_code, 405)
+
+    def test_elimina_imagen_y_borra_el_archivo(self):
+        self.client.post(self.url, {'imagen': self.crear_imagen()})
+        self.detalle.refresh_from_db()
+        nombre_archivo = self.detalle.imagen.name
+        almacenamiento = self.detalle.imagen.storage
+        self.assertTrue(almacenamiento.exists(nombre_archivo))
+
+        url_eliminar = reverse('core:eliminar_imagen_mueble', args=[self.detalle.pk])
+        respuesta = self.client.post(url_eliminar)
+
+        self.assertRedirects(respuesta, self.url_presupuestos, fetch_redirect_response=False)
+        self.detalle.refresh_from_db()
+        self.assertFalse(self.detalle.imagen)
+        self.assertFalse(almacenamiento.exists(nombre_archivo))
+
+        respuesta = self.client.get(self.url_presupuestos)
+        self.assertContains(respuesta, 'Agregar imagen')
+        self.assertContains(respuesta, 'La imagen del mueble se eliminó correctamente.')
+
+    def test_eliminar_imagen_sin_archivo_no_falla(self):
+        url_eliminar = reverse('core:eliminar_imagen_mueble', args=[self.detalle.pk])
+        respuesta = self.client.post(url_eliminar)
+
+        self.assertRedirects(respuesta, self.url_presupuestos, fetch_redirect_response=False)
+        self.detalle.refresh_from_db()
+        self.assertFalse(self.detalle.imagen)
+
+    def test_no_permite_eliminar_imagen_por_get(self):
+        url_eliminar = reverse('core:eliminar_imagen_mueble', args=[self.detalle.pk])
+        respuesta = self.client.get(url_eliminar)
+        self.assertEqual(respuesta.status_code, 405)

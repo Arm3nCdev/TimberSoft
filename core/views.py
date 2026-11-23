@@ -321,6 +321,18 @@ def subir_imagen_mueble(request, detalle_id):
     return redirect('core:presupuestos')
 
 
+@require_POST
+def eliminar_imagen_mueble(request, detalle_id):
+    detalle = get_object_or_404(DetallePresupuesto, pk=detalle_id)
+
+    if detalle.imagen:
+        detalle.imagen.delete(save=False)
+        detalle.save(update_fields=['imagen'])
+        messages.success(request, 'La imagen del mueble se eliminó correctamente.')
+
+    return redirect('core:presupuestos')
+
+
 def materiales(request):
     q = request.GET.get('q', '').strip()
     lista = Material.objects.filter(activo=True)
