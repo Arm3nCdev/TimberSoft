@@ -2,15 +2,17 @@ from datetime import timedelta
 
 from django.db.models import F, Q
 from django.http import Http404
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
+from django.contrib import messages
+from django.views.decorators.http import require_POST
 
 import re
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from .menu import titulo_por_slug
-from .forms import ClienteForm
+from .forms import ClienteForm, ImagenMuebleForm
 from .models import (
     Material,
     Pedido,
@@ -302,6 +304,33 @@ def presupuestos(request):
         'estado_seleccionado': estado,
         'estados': EstadoPresupuesto.choices,
     })
+
+
+@require_POST
+def subir_imagen_mueble(request, detalle_id):
+    detalle = get_object_or_404(DetallePresupuesto, pk=detalle_id)
+    form = ImagenMuebleForm(request.POST, request.FILES, instance=detalle)
+
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'La imagen del mueble se cargó correctamente.')
+    else:
+        errores = ' '.join(form.errors.get('imagen', ['Verificá el archivo seleccionado.']))
+        messages.error(request, f'No se pudo cargar la imagen. {errores}')
+
+    return redirect('core:presupuestos')
+
+
+@require_POST
+def eliminar_imagen_mueble(request, detalle_id):
+    detalle = get_object_or_404(DetallePresupuesto, pk=detalle_id)
+
+    if detalle.imagen:
+        detalle.imagen.delete(save=False)
+        detalle.save(update_fields=['imagen'])
+        messages.success(request, 'La imagen del mueble se eliminó correctamente.')
+
+    return redirect('core:presupuestos')
 
 
 def materiales(request):
