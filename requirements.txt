@@ -1,3 +1,4 @@
 Django>=5.2,<6
 mssql-django>=2.0.0
 pyodbc>=5.2.0
+Pillow>=11.0.0

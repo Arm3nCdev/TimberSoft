@@ -1,50 +1,55 @@
 import csv
+import re
 from datetime import timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import F, Q
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .forms import (
-    ClienteForm,
-    PresupuestoCabeceraForm,
-    EntregaForm,
-    DetallePresupuestoForm,
-    MovimientoInventarioForm,
-    GastoOperativoForm,
     CambiarEstadoPedidoForm,
+    ClienteForm,
+    DetallePresupuestoForm,
+    EntregaForm,
+    GastoOperativoForm,
+    ImagenMuebleForm,
+    MovimientoInventarioForm,
+    PresupuestoCabeceraForm,
 )
 from .menu import titulo_por_slug
 from .models import (
-    Material,
-    Pedido,
-    Presupuesto,
-    DetallePresupuesto,
-    MaterialRequerido,
-    Entrega,
-    ModalidadEntrega,
-    Cliente,
-    Proveedor,
-    Compra,
-    MovimientoInventario,
-    TipoMovimiento,
-    GastoOperativo,
-    PagoProveedor,
-    Pago,
-    TipoPago,
-    MedioPago,
+    AccionAuditoria,
     CierreCaja,
-    RegistroCambio,
+    Cliente,
+    Compra,
+    DetallePresupuesto,
+    Entrega,
     EstadoPedido,
     EstadoPresupuesto,
+    GastoOperativo,
+    Material,
+    MaterialRequerido,
+    MedioPago,
+    ModalidadEntrega,
+    MovimientoInventario,
+    Pago,
+    PagoProveedor,
+    Pedido,
+    Presupuesto,
+    Proveedor,
+    RegistroCambio,
     RolEnum,
+    TipoMovimiento,
+    TipoPago,
 )
 
 
@@ -181,21 +186,189 @@ def cliente_editar(request, pk):
 
     return render(request, 'core/cliente_form.html', {'form': form, 'es_edicion': True, 'cliente': cliente, 'es_empleado': es_empleado})
 
-    if form.is_valid():
-        form.save()
-        messages.success(request, f'Datos de «{cliente.obtenerNombreCompleto()}» actualizados exitosamente.')
-        return redirect('core:clientes')
-    else:
-        form = ClienteForm(instance=cliente)
-
-    return render(request, 'core/cliente_form.html', {'form': form, 'es_edicion': True, 'cliente': cliente})
-
 
 # ==============================================================================
 # 4. PRESUPUESTOS (Melina: botón de agregar presupuesto y costeo detallado)
 # ==============================================================================
 
-@login_required
+def nuevo_presupuesto(request):
+    clientes = Cliente.objects.all().order_by('apellido', 'nombre')
+    materiales = Material.objects.filter(activo=True).order_by('nombreMaterial')
+
+    contexto = {
+        'clientes': clientes,
+        'materiales': materiales,
+        'modalidades': ModalidadEntrega.choices,
+    }
+
+    if request.method == 'POST':
+        try:
+            cliente = Cliente.objects.get(pk=request.POST.get('cliente'))
+
+            modalidad = request.POST.get('modalidadEntrega')
+            modalidades_validas = [opcion[0] for opcion in ModalidadEntrega.choices]
+
+            if modalidad not in modalidades_validas:
+                raise ValueError('Seleccioná una modalidad de entrega válida.')
+
+            def obtener_decimal(nombre, predeterminado='0'):
+                valor = request.POST.get(nombre, predeterminado)
+                numero = Decimal(valor or predeterminado)
+
+                if numero < 0:
+                    raise ValueError('Los importes y cantidades no pueden ser negativos.')
+
+                return numero
+
+            costo_mano_obra = obtener_decimal('costoManoObra')
+            costo_flete = obtener_decimal('costoFlete')
+
+            direccion = request.POST.get('direccionEntrega', '').strip()
+
+            if modalidad == ModalidadEntrega.DOMICILIO and not direccion:
+                raise ValueError('Ingresá la dirección de entrega.')
+
+            if modalidad != ModalidadEntrega.DOMICILIO:
+                costo_flete = Decimal('0')
+                direccion = ''
+
+            indices_muebles = sorted({
+                int(coincidencia.group(1))
+                for clave in request.POST.keys()
+                if (coincidencia := re.match(
+                    r'^muebles\[(\d+)\]\[descripcion\]$', clave
+                ))
+            })
+
+            if not indices_muebles:
+                raise ValueError('Agregá al menos un mueble al presupuesto.')
+
+            with transaction.atomic():
+
+                presupuesto = Presupuesto.objects.create(
+                    cliente=cliente,
+                    costoManoObra=costo_mano_obra,
+                    estadoPresupuesto=EstadoPresupuesto.PENDIENTE,
+                )
+
+                for indice in indices_muebles:
+                    descripcion = request.POST.get(
+                        f'muebles[{indice}][descripcion]', ''
+                    ).strip()
+
+                    if not descripcion:
+                        raise ValueError('Todos los muebles deben tener una descripción.')
+
+                    cantidad = int(
+                        request.POST.get(f'muebles[{indice}][cantidad]', '1')
+                    )
+
+                    if cantidad < 1:
+                        raise ValueError('La cantidad de muebles debe ser al menos 1.')
+
+                    detalle = DetallePresupuesto.objects.create(
+                        presupuesto=presupuesto,
+                        descripcionMueble=descripcion,
+                        largo=obtener_decimal(f'muebles[{indice}][largo]'),
+                        ancho=obtener_decimal(f'muebles[{indice}][ancho]'),
+                        alto=obtener_decimal(f'muebles[{indice}][alto]'),
+                        detalleMedidas=request.POST.get(
+                            f'muebles[{indice}][detalleMedidas]', ''
+                        ).strip(),
+                        colorTerminacion=request.POST.get(
+                            f'muebles[{indice}][color]', ''
+                        ).strip(),
+                        cantidad=cantidad,
+                        margen=obtener_decimal(
+                            f'muebles[{indice}][margen]'
+                        ),
+                    )
+
+                    patron_material = re.compile(
+                        rf'^muebles\[{indice}\]\[materiales\]\[(\d+)\]\[material\]$'
+                    )
+
+                    indices_materiales = sorted({
+                        int(coincidencia.group(1))
+                        for clave in request.POST.keys()
+                        if (coincidencia := patron_material.match(clave))
+                    })
+
+                    materiales_agregados = 0
+
+                    for indice_material in indices_materiales:
+                        prefijo = (
+                            f'muebles[{indice}]'
+                            f'[materiales][{indice_material}]'
+                        )
+
+                        material_id = request.POST.get(
+                            f'{prefijo}[material]'
+                        )
+
+                        if not material_id:
+                            continue
+
+                        material = Material.objects.get(
+                            pk=material_id,
+                            activo=True
+                        )
+
+                        cantidad_material = obtener_decimal(
+                            f'{prefijo}[cantidad]'
+                        )
+
+                        if cantidad_material <= 0:
+                            raise ValueError(
+                                'La cantidad de cada material debe ser mayor que cero.'
+                            )
+
+                        MaterialRequerido.objects.create(
+                            detallePresupuesto=detalle,
+                            material=material,
+                            cantidadRequerida=cantidad_material,
+                        )
+
+                        materiales_agregados += 1
+
+                    if materiales_agregados == 0:
+                        raise ValueError(
+                            f'El mueble "{descripcion}" debe tener al menos un material.'
+                        )
+
+                Entrega.objects.create(
+                    presupuesto=presupuesto,
+                    modalidadEntrega=modalidad,
+                    direccionEntrega=direccion,
+                    costoFlete=costo_flete,
+                )
+
+                RegistroCambio.objects.create(
+                    usuario=request.user if request.user.is_authenticated else None,
+                    entidad='Presupuesto',
+                    idEntidad=presupuesto.pk,
+                    accion=AccionAuditoria.CREAR,
+                    valorNuevo=(
+                        f'Presupuesto creado para {cliente}. '
+                        f'Estado: Pendiente. '
+                        f'Total: {presupuesto.montoTotal}'
+                    ),
+                )
+
+            return redirect('core:presupuestos')
+
+        except Cliente.DoesNotExist:
+            contexto['error'] = 'El cliente seleccionado no existe.'
+        except Material.DoesNotExist:
+            contexto['error'] = 'Uno de los materiales seleccionados no existe o está inactivo.'
+        except (ValueError, InvalidOperation, TypeError):
+            contexto['error'] = (
+                'Verificá los datos ingresados. Revisá cantidades, medidas e importes.'
+            )
+
+    return render(request, 'core/nuevo_presupuesto.html', contexto)
+
+
 def presupuestos(request):
     es_empleado = hasattr(request.user, 'rol') and request.user.rol == RolEnum.EMPLEADO and not request.user.is_superuser
     q = request.GET.get('q', '').strip()
@@ -385,6 +558,33 @@ def pedido_actualizar_estado(request, pk):
                 messages.error(request, str(e.message if hasattr(e, 'message') else e))
 
     return redirect('core:pedidos')
+
+
+@require_POST
+def subir_imagen_mueble(request, detalle_id):
+    detalle = get_object_or_404(DetallePresupuesto, pk=detalle_id)
+    form = ImagenMuebleForm(request.POST, request.FILES, instance=detalle)
+
+    if form.is_valid():
+        form.save()
+        messages.success(request, 'La imagen del mueble se cargó correctamente.')
+    else:
+        errores = ' '.join(form.errors.get('imagen', ['Verificá el archivo seleccionado.']))
+        messages.error(request, f'No se pudo cargar la imagen. {errores}')
+
+    return redirect('core:presupuestos')
+
+
+@require_POST
+def eliminar_imagen_mueble(request, detalle_id):
+    detalle = get_object_or_404(DetallePresupuesto, pk=detalle_id)
+
+    if detalle.imagen:
+        detalle.imagen.delete(save=False)
+        detalle.save(update_fields=['imagen'])
+        messages.success(request, 'La imagen del mueble se eliminó correctamente.')
+
+    return redirect('core:presupuestos')
 
 
 # ==============================================================================

@@ -53,7 +53,7 @@
       <button type="button" class="btn-hamburguesa" id="btn-menu" aria-label="Abrir menú">☰</button>
       <div class="migas">{% block migas %}Inicio{% endblock %}</div>
       <div class="topbar-der">
-        <a class="btn btn-primario" href="{% url 'core:presupuesto_crear' %}">+ Nuevo presupuesto</a>
+        <a class="btn btn-primario" href="{% url 'core:nuevo_presupuesto' %}">+ Nuevo presupuesto</a>
         <a class="btn" href="{% url 'core:cliente_crear' %}">+ Cliente</a>
         <div class="usuario">
           <button type="button" class="usuario-btn" id="btn-usuario" aria-expanded="false">

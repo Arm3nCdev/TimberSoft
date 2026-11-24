@@ -18,7 +18,10 @@ urlpatterns = [
 
     # Presupuestos (Melina: botón de agregar presupuesto y costeo detallado)
     path('presupuestos/', views.presupuestos, name='presupuestos'),
-    path('presupuestos/nuevo/', views.presupuesto_crear, name='presupuesto_crear'),
+    path('presupuestos/nuevo/', views.nuevo_presupuesto, name='nuevo_presupuesto'),
+    path('presupuestos/simple/', views.presupuesto_crear, name='presupuesto_crear'),
+    path('presupuestos/muebles/<int:detalle_id>/imagen/', views.subir_imagen_mueble, name='subir_imagen_mueble'),
+    path('presupuestos/muebles/<int:detalle_id>/imagen/eliminar/', views.eliminar_imagen_mueble, name='eliminar_imagen_mueble'),
     path('presupuestos/<int:pk>/', views.presupuesto_detalle, name='presupuesto_detalle'),
     path('presupuestos/<int:pk>/aprobar/', views.presupuesto_aprobar, name='presupuesto_aprobar'),
     path('presupuestos/<int:pk>/rechazar/', views.presupuesto_rechazar, name='presupuesto_rechazar'),
